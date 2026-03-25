@@ -1,23 +1,6 @@
-"""Pipeline orchestrator (decision cascade).
-
-Flow:
-1) Layer A preprocesses text and may hard-block for high-confidence flags.
-2) Layer B runs embedding-based semantic similarity detection.
-    - If MALICIOUS (block) => final verdict = block
-    - If unsure (flag) => send to Layer C
-3) Layer C makes the final decision only for unsure cases.
-    - If block or allow => final verdict
-    - If flag (uncertain) => escalate to Layer D
-4) Layer D makes a second-stage ModernBERT decision for flagged Layer C cases.
-    - If block or allow => continue to Layer E as final arbiter
-5) Layer E (LLM judge) is the final arbiter for cases that remain
-   uncertain after all prior layers.
-
-Each layer makes its own decision; we do not aggregate scores.
-"""
-
 import hashlib
 import time
+from typing import Literal
 
 from core.settings import Settings
 from models.PipelineResult import PipelineResult
@@ -50,7 +33,29 @@ class PIPipeline:
             high=settings.layer_d_high_threshold,
             max_length=settings.layer_d_max_length,
         )
-        self.layer_e_judge = LLMJudge()
+        judge_mode = settings.layer_e_judge_mode.strip().lower()
+        if judge_mode not in {"base", "finetuned"}:
+            judge_mode = "base"
+        judge_mode_literal: Literal["base", "finetuned"] = (
+            "finetuned" if judge_mode == "finetuned" else "base"
+        )
+
+        runtime_model_name = (
+            settings.layer_e_runtime_base_model
+            if judge_mode_literal == "base"
+            else settings.layer_e_runtime_finetuned_model
+        )
+
+        self.layer_e_judge = LLMJudge(
+            llm_base_url=settings.layer_e_ollama_base_url,
+            model_name=runtime_model_name,
+            temperature=settings.layer_e_temperature,
+            timeout_s=settings.layer_e_timeout_s,
+            max_retries=settings.layer_e_max_retries,
+            max_new_tokens=settings.layer_e_max_new_tokens,
+            no_think_default=settings.layer_e_no_think_default,
+            judge_mode=judge_mode_literal,
+        )
 
     def _create_result(
         self,
@@ -89,7 +94,7 @@ class PIPipeline:
         start_time = time.time()
         input_hash = hashlib.sha256(input_text.encode()).hexdigest()[:16]
 
-        # ----- Layer A -----
+        #Layer A
         layer_a_result = self.layer_a_analyze(input_text)
         analysis_text = layer_a_result.processed_text
 
@@ -102,7 +107,7 @@ class PIPipeline:
                 confidence_score=layer_a_result.confidence_score,
             )
 
-        # ----- Layer B -----
+        #Layer B
         layer_b_result = self.layer_b_engine.detect(analysis_text)
 
         # MALICIOUS signatures => block immediately
@@ -115,7 +120,7 @@ class PIPipeline:
                 confidence_score=layer_b_result.confidence_score,
             )
 
-        # ----- Layer C -----
+        #Layer C
         # Anything not blocked by Layer B is screened by the ML classifier.
         layer_c_result = self.layer_c_classifier.predict(analysis_text)
 
@@ -129,25 +134,17 @@ class PIPipeline:
                 confidence_score=layer_c_result.confidence_score,
             )
     
-        # ----- Layer D -----
+        #Layer D
         layer_d_result = self.layer_d_classifier.predict(analysis_text)
 
-        # ----- Layer E -----
+        #Layer E
         layer_e_start = time.time()
         layer_e_result = self.layer_e_judge.call_judge(analysis_text)
         layer_e_time_ms = (time.time() - layer_e_start) * 1000
 
         # Fallback if LLM judge returns None unexpectedly
-        if layer_e_result is None:
-            layer_e_result_dict = {"label": 1, "rationale": "LLM judge returned None"}
-            layer_e_verdict = FinalVerdict.BLOCK
-        else:
-            layer_e_result_dict = {
-                "label": layer_e_result.label,
-                "rationale": layer_e_result.rationale,
-            }
-            # Map JudgeOutput label (0=benign, 1=malicious) to FinalVerdict
-            layer_e_verdict = FinalVerdict.BLOCK if layer_e_result.label == 1 else FinalVerdict.ALLOW
+        layer_e_result_dict = layer_e_result.model_dump()
+        layer_e_verdict = FinalVerdict.BLOCK if layer_e_result.decision == "block" else FinalVerdict.ALLOW
 
         return self._create_result(
             input_hash, start_time, layer_a_result,

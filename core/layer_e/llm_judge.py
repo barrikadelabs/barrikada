@@ -1,54 +1,135 @@
-from litellm import completion
-from .utils import LLM_BASE_URL, TEMPERATURE, JudgeOutput, SYSTEM_PROMPT, FEW_SHOT_EXAMPLES
+import json
+import re
+from dataclasses import dataclass
+from typing import Literal
+from urllib import error, request
+
+from .utils import (
+    LLM_BASE_URL,
+    RUNTIME_MODEL,
+    TEMPERATURE,
+    JUDGE_MODE,
+    JudgeOutput,
+    BASE_SYSTEM_PROMPT,
+    FINETUNED_SYSTEM_PROMPT,
+    build_user_prompt,
+)
+
+
+_VERDICT_RE = re.compile(r"VERDICT\s*:\s*(BLOCK|ALLOW)", re.IGNORECASE)
+_RATIONALE_RE = re.compile(r"RATIONALE\s*:\s*(.+)", re.IGNORECASE)
+
+
+@dataclass
+class _JudgeParseResult:
+    decision: Literal["allow", "block"]
+    rationale: str
+
 
 class LLMJudge:
-    def __init__(self, llm_base_url=LLM_BASE_URL, temperature=TEMPERATURE):
-        self.llm_base_url = llm_base_url
-        self.temperature = temperature
+    def __init__(
+        self,
+        llm_base_url: str = LLM_BASE_URL,
+        model_name: str = RUNTIME_MODEL,
+        temperature: float = TEMPERATURE,
+        timeout_s: float = 30.0,
+        max_retries: int = 2,
+        max_new_tokens: int = 16,
+        no_think_default: bool = True,
+        judge_mode: Literal["base", "finetuned"] = JUDGE_MODE,
+    ):
+        self.llm_base_url = llm_base_url.rstrip("/")
+        self.model_name = model_name
+        self.temperature = float(temperature)
+        self.timeout_s = float(timeout_s)
+        self.max_retries = int(max_retries)
+        self.max_new_tokens = int(max_new_tokens)
+        self.no_think_default = bool(no_think_default)
+        self.judge_mode: Literal["base", "finetuned"] = judge_mode
 
-    def call_judge(self, prompt, max_retries=2):
-        for attempt in range(max_retries):
+    def _post_chat(self, messages: list[dict], no_think: bool) -> dict:
+        payload = {
+            "model": self.model_name,
+            "stream": False,
+            "messages": messages,
+            "think": not no_think,
+            "options": {
+                "temperature": self.temperature,
+                "num_predict": self.max_new_tokens,
+            },
+        }
+
+        endpoint = f"{self.llm_base_url}/api/chat"
+        body = json.dumps(payload).encode("utf-8")
+        req = request.Request(
+            endpoint,
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
+        with request.urlopen(req, timeout=self.timeout_s) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
+    @staticmethod
+    def _parse_output(content: str) -> _JudgeParseResult | None:
+        verdict_match = _VERDICT_RE.search(content)
+        if verdict_match is None:
+            bare = content.strip().upper()
+            if bare.startswith("BLOCK"):
+                return _JudgeParseResult(decision="block", rationale="Model returned BLOCK verdict")
+            if bare.startswith("ALLOW"):
+                return _JudgeParseResult(decision="allow", rationale="Model returned ALLOW verdict")
+            return None
+
+        decision = "block" if verdict_match.group(1).upper() == "BLOCK" else "allow"
+        rationale_match = _RATIONALE_RE.search(content)
+        rationale = rationale_match.group(1).strip() if rationale_match else "No rationale provided"
+        return _JudgeParseResult(decision=decision, rationale=rationale)
+
+    def call_judge(self, prompt: str, *, no_think: bool | None = None, max_retries: int | None = None) -> JudgeOutput:
+        retries = self.max_retries if max_retries is None else int(max_retries)
+        use_no_think = self.no_think_default if no_think is None else bool(no_think)
+
+        last_error = ""
+        for attempt in range(max(retries, 1)):
             try:
-                response = completion(
-                    model="ollama/gpt-oss:latest",
-                    temperature=self.temperature,
-                    api_base=self.llm_base_url,
+                response = self._post_chat(
                     messages=[
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": f"""{FEW_SHOT_EXAMPLES}
-
-                            NOW CLASSIFY THIS INPUT:
-                            <input_text>
-                            {prompt}
-                            </input_text>
-
-                            Respond with ONLY valid JSON in this exact format:
-                            {{"label": 0 or 1, "rationale": "brief explanation"}}
-
-                            Remember: label 0 = benign, label 1 = malicious. When uncertain, choose 1 (malicious)."""
-                        }
-                    ]
+                        {
+                            "role": "system",
+                            "content": FINETUNED_SYSTEM_PROMPT if self.judge_mode == "finetuned" else BASE_SYSTEM_PROMPT,
+                        },
+                        {"role": "user", "content": build_user_prompt(prompt, mode=self.judge_mode)},
+                    ],
+                    no_think=use_no_think,
                 )
-                
-                content = response.choices[0].message.content # type: ignore
-                
-                # If the LLM refuses to analyze or says it can't help, the input is likely malicious
-                refusal_phrases = ["can't help", "cannot help", "sorry", "unable to", "i can't", "i cannot", "not able to"]
-                if any(phrase in content.lower() for phrase in refusal_phrases): # type: ignore
-                    return JudgeOutput(label=1, rationale="LLM refused to analyze - treating as malicious")
-                
-                # Try to extract JSON from the response (sometimes wrapped in markdown)
-                import re
-                json_match = re.search(r'\{[^{}]*"label"\s*:\s*[01][^{}]*\}', content) # type: ignore
-                if json_match:
-                    content = json_match.group(0)
-                
-                result = JudgeOutput.model_validate_json(content) # type: ignore
-                return result
-                
-            except Exception as e:
-                if attempt < max_retries - 1:
+                message = response.get("message", {})
+                content = str(message.get("content", "")).strip()
+                reasoning = message.get("thinking")
+
+                parsed = self._parse_output(content)
+                if parsed is None:
+                    raise ValueError(f"Could not parse verdict from response: {content[:120]}")
+
+                return JudgeOutput(
+                    decision=parsed.decision,
+                    rationale=parsed.rationale,
+                    model=self.model_name,
+                    no_think=use_no_think,
+                    raw_response=content,
+                    reasoning_trace=str(reasoning).strip() if reasoning else None,
+                )
+            except (ValueError, error.HTTPError, error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+                last_error = str(exc)
+                if attempt < retries - 1:
                     continue
-                print(f"Error parsing response after {max_retries} attempts: {e}")
-                # Default to malicious when parsing fails - safer approach
-                return JudgeOutput(label=1, rationale=f"Parsing failed, defaulting to malicious: {str(e)[:50]}")
+
+        return JudgeOutput(
+            decision="block",
+            rationale=f"Layer E fallback block after runtime/parsing failure: {last_error[:140]}",
+            model=self.model_name,
+            no_think=use_no_think,
+            raw_response="",
+            reasoning_trace=None,
+        )

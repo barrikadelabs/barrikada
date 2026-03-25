@@ -179,3 +179,46 @@ class Settings(BaseModel):
     def layer_d_report_path(self):
         return str(self._project_root / "test_results" / "layer_d_eval_latest.json")
 
+    ### Layer E (Qwen3.5 LLM judge)
+    layer_e_ollama_base_url: str = "http://localhost:11434"
+    layer_e_judge_mode: str = "base"  # base | finetuned
+    layer_e_runtime_base_model: str = "qwen3.5:2b"
+    layer_e_runtime_finetuned_model: str = "qwen3.5:4b"
+    layer_e_runtime_model: str = "qwen3.5:2b"
+    layer_e_teacher_model: str = "qwen3.5:4b"
+    layer_e_temperature: float = 0.0
+    layer_e_timeout_s: float = 30.0
+    layer_e_max_retries: int = 2
+    layer_e_max_new_tokens: int = 16
+    layer_e_no_think_default: bool = True
+
+    # Teacher SFT defaults (QLoRA)
+    layer_e_teacher_hf_model_id: str = "Qwen/Qwen3-4B"
+    layer_e_teacher_epochs: int = 3
+    layer_e_teacher_lr: float = 2e-4
+    layer_e_teacher_warmup_ratio: float = 0.05
+    # Memory-safe defaults for 24 GB class GPUs with QLoRA.
+    layer_e_teacher_train_batch_size: int = 2
+    layer_e_teacher_eval_batch_size: int = 1
+    layer_e_teacher_grad_accum_steps: int = 16
+    layer_e_teacher_max_seq_length: int = 384
+    layer_e_teacher_lora_rank: int = 64
+    layer_e_teacher_lora_alpha: int = 128
+    layer_e_teacher_lora_dropout: float = 0.05
+
+    @property
+    def layer_e_output_dir(self):
+        return str(self._project_root / "core" / "layer_e" / "outputs")
+
+    @property
+    def layer_e_teacher_output_dir(self):
+        return str(self._project_root / "core" / "layer_e" / "outputs" / "teacher")
+
+    @property
+    def layer_e_teacher_report_path(self):
+        return str(self._project_root / "test_results" / "layer_e_teacher_eval_latest.json")
+
+    @property
+    def layer_e_teacher_labels_path(self):
+        return str(self._project_root / "core" / "layer_e" / "outputs" / "teacher" / "teacher_labels.csv")
+
