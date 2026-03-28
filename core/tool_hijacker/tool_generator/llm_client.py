@@ -9,12 +9,12 @@ from typing import Optional
 class LLMClient:
     """Handles communication with Ollama API."""
     
-    def __init__(self, model: str = "llama3.2", base_url: str = "http://localhost:11434"):
+    def __init__(self, model= "llama3.2", base_url= "http://localhost:11434"):
         self.model = model
         self.base_url = base_url
         self.generate_url = f"{base_url}/api/generate"
     
-    def generate(self, prompt: str, max_tokens: int = 150) -> Optional[str]:
+    def generate(self, prompt, max_tokens= 150):
         """
         Generate text from prompt.
         
@@ -47,7 +47,7 @@ class LLMClient:
             print(f"LLM request failed: {e}")
             return None
     
-    def is_available(self) -> bool:
+    def is_available(self):
         """Check if Ollama is running."""
         try:
             response = requests.get(f"{self.base_url}/api/tags", timeout=5)

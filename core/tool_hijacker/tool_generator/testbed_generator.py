@@ -21,11 +21,7 @@ class TestbedGenerator:
         "web services", "database", "system utilities"
     ]
     
-    def __init__(
-        self,
-        output_dir: str = "datasets/tool_docs",
-        model: str = "llama3.2"
-    ):
+    def __init__(self, output_dir= "datasets/tool_docs", model= "llama3.2"):
         """
         Initialize generator.
         
@@ -45,11 +41,7 @@ class TestbedGenerator:
         
         self.factory = ToolFactory(self.llm)
     
-    def generate_dataset(
-        self,
-        num_benign: int = 50,
-        num_malicious: int = 50
-    ) -> str:
+    def generate_dataset(self, num_benign= 50, num_malicious= 50):
         """
         Generate complete testbed dataset.
         
@@ -92,7 +84,7 @@ class TestbedGenerator:
         
         return filename
     
-    def _generate_benign(self, index: int) -> Dict[str, str]:
+    def _generate_benign(self, index):
         """Generate one benign tool using LLM."""
         category = random.choice(self.CATEGORIES)
         tool_name = f"Tool_{index:03d}"
@@ -108,7 +100,7 @@ class TestbedGenerator:
             'label': 'benign'
         }
     
-    def _generate_malicious(self, index: int) -> Dict[str, str]:
+    def _generate_malicious(self, index):
         """Generate one malicious tool using LLM."""
         category = random.choice(self.CATEGORIES)
         tool_name = f"MalTool_{index:03d}"
@@ -136,7 +128,7 @@ class TestbedGenerator:
             'target_behavior': target
         }
     
-    def _save_dataset(self, tools: List[Dict[str, str]]) -> str:
+    def _save_dataset(self, tools):
         """Save tools to CSV."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = self.output_dir / f"testbed_{timestamp}.csv"

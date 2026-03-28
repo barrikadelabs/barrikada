@@ -13,7 +13,7 @@ class LayerCResult:
     # Processing metadata
     processing_time_ms: float
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self):
         """Convert to dictionary for serialization"""
         return {
             'verdict': self.verdict,
@@ -22,7 +22,7 @@ class LayerCResult:
             'processing_time_ms': self.processing_time_ms,
         }
     
-    def get_risk_score(self) -> float:
+    def get_risk_score(self):
         """Calculate risk score contribution (0-100)"""
         # Scale probability to risk score
         return self.probability_score * 100.0

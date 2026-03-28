@@ -1,7 +1,7 @@
 import ftfy
 import re
 
-def normalise_punctuation_and_whitespace(text:str):
+def normalise_punctuation_and_whitespace(text):
     """Use ftfy to fix punctuation and whitespace issues."""
     
     # Step 1: Canonicalize newlines

@@ -2,7 +2,6 @@ import time
 import hashlib
 import json
 import logging
-from typing import List
 from pathlib import Path
 
 import numpy as np
@@ -70,12 +69,12 @@ class SignatureEngine:
         # Move to GPU if available
         n_gpus = faiss.get_num_gpus()
         if n_gpus > 0:
-            res = faiss.StandardGpuResources() #type: ignore
-            self.attack_index = faiss.index_cpu_to_gpu(res, 0, cpu_attack) #type: ignore
+            res = faiss.StandardGpuResources()
+            self.attack_index = faiss.index_cpu_to_gpu(res, 0, cpu_attack)
             log.info("Attack FAISS index → GPU 0")
             if cpu_benign is not None:
-                self.benign_index = faiss.index_cpu_to_gpu(#type: ignore
-                    faiss.StandardGpuResources(), 0, cpu_benign,#type: ignore
+                self.benign_index = faiss.index_cpu_to_gpu(
+                    faiss.StandardGpuResources(), 0, cpu_benign,
                 )
                 log.info("Benign FAISS index → GPU 0")
             else:
@@ -95,7 +94,7 @@ class SignatureEngine:
         return vec.astype(np.float32)
 
     # main detection method
-    def detect(self, text) -> LayerBResult:
+    def detect(self, text):
         start = time.time()
         input_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
 
@@ -110,8 +109,8 @@ class SignatureEngine:
         attack_sim = float(np.mean(atk_scores[:k_attack]))
 
         # Benign similarity (top-k mean) 
-        if self.benign_index is not None:
-            k_benign = min(top_k, self.benign_centroids.shape[0])#type: ignore
+        if self.benign_index is not None and self.benign_centroids is not None:
+            k_benign = min(top_k, self.benign_centroids.shape[0])
             ben_scores, _ = self.benign_index.search(query, k_benign)
             ben_scores = ben_scores[0]
             benign_sim = float(np.mean(ben_scores[:k_benign]))
@@ -122,7 +121,7 @@ class SignatureEngine:
         contrastive = attack_sim - benign_sim
 
         # Build match objects (informational) 
-        matches: List[SignatureMatch] = []
+        matches = []
 
         cluster_meta = {c["cluster_id"]: c for c in self.metadata.get("clusters", [])}
 

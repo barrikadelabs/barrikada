@@ -10,12 +10,12 @@ class LayerResult(ABC):
     """Abstract base class for layer results"""
     
     @abstractmethod
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self):
         """Convert result to dictionary for serialization"""
         pass
     
     @abstractmethod
-    def get_risk_score(self) -> float:
+    def get_risk_score(self):
         """
         Get risk score contribution from this layer (0-100)
         Used by orchestrator for final risk aggregation
@@ -24,18 +24,18 @@ class LayerResult(ABC):
     
     @property
     @abstractmethod
-    def verdict(self) -> str:
+    def verdict(self):
         """Get layer verdict: 'allow', 'flag', or 'block'"""
         pass
     
     @property
     @abstractmethod
-    def processing_time_ms(self) -> float:
+    def processing_time_ms(self):
         """Get processing time in milliseconds"""
         pass
     
     @property
-    def confidence_score(self) -> float:
+    def confidence_score(self):
         """
         Get confidence score (0.0 to 1.0)
         Default implementation returns 1.0, override if layer provides confidence

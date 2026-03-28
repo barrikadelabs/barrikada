@@ -16,10 +16,10 @@ class ToolDocument:
     description: str
     metadata: dict = field(default_factory=dict)
     
-    def __str__(self) -> str:
+    def __str__(self):
         return f"Tool: {self.name}\nDescription: {self.description}"
     
-    def to_dict(self) -> dict:
+    def to_dict(self):
         """Convert to dictionary for serialization"""
         return {
             'name': self.name,
@@ -28,7 +28,7 @@ class ToolDocument:
         }
     
     @classmethod
-    def from_dict(cls, data: dict) -> 'ToolDocument':
+    def from_dict(cls, data):
         """Create ToolDocument from dictionary"""
         return cls(
             name=data['name'],
@@ -46,7 +46,7 @@ class MaliciousToolDocument(ToolDocument):
     retrieval_subsequence: Optional[str] = None  # R in the paper
     selection_subsequence: Optional[str] = None  # S in the paper
     
-    def compose_description(self) -> str:
+    def compose_description(self):
         """
         Compose full description from R ⊕ S (concatenation).
         """
@@ -64,12 +64,12 @@ class MaliciousToolDocument(ToolDocument):
         """Update the main description from R and S"""
         self.description = self.compose_description()
     
-    def set_retrieval_subsequence(self, r: str):
+    def set_retrieval_subsequence(self, r):
         """Set R and update description"""
         self.retrieval_subsequence = r
         self.update_from_subsequences()
     
-    def set_selection_subsequence(self, s: str):
+    def set_selection_subsequence(self, s):
         """Set S and update description"""
         self.selection_subsequence = s
         self.update_from_subsequences()

@@ -30,7 +30,7 @@ SEED = _settings.layer_c_seed
 
 
 class LayerDTrainer(Trainer):
-    def __init__(self, *args, class_weights: torch.Tensor | None = None, focal_gamma: float = 0.0, **kwargs):
+    def __init__(self, *args, class_weights= None, focal_gamma= 0.0, **kwargs):
         super().__init__(*args, **kwargs)
         self.class_weights = class_weights
         self.focal_gamma = focal_gamma

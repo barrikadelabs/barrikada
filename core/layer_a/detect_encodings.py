@@ -48,10 +48,10 @@ _printable_bytes = set(bytes(string.printable, "ascii"))
 # Module-level executor for decode timeouts (reused to avoid overhead)
 _decode_executor = ThreadPoolExecutor(max_workers=2)
 
-def _hash_bytes(b: bytes):
+def _hash_bytes(b):
     return hashlib.sha256(b).hexdigest()
 
-def _is_printable_ratio(b: bytes):
+def _is_printable_ratio(b):
     if not b:
         return 0
     printable = 0
@@ -60,7 +60,7 @@ def _is_printable_ratio(b: bytes):
             printable += 1
     return printable / len(b)
 
-def _safe_run_with_timeout(fn, *args, timeout: float = MAX_DECODE_SECONDS, **kwargs):
+def _safe_run_with_timeout(fn, *args, timeout=MAX_DECODE_SECONDS, **kwargs):
     """Run decode function with timeout using shared executor."""
     fut = _decode_executor.submit(fn, *args, **kwargs)
     try:
@@ -70,7 +70,7 @@ def _safe_run_with_timeout(fn, *args, timeout: float = MAX_DECODE_SECONDS, **kwa
         raise TimeoutError("Decode attempt timed out")
 
 #Decode attempt helpers
-def try_base64_decode(b64text: str, max_bytes: int = MAX_DECODE_BYTES):
+def try_base64_decode(b64text, max_bytes=MAX_DECODE_BYTES):
     """
     Try a safe base64 decode. Returns (decoded_bytes or None, meta)
     """
@@ -127,7 +127,7 @@ def try_base64_decode(b64text: str, max_bytes: int = MAX_DECODE_BYTES):
     meta["suspicious_keywords"] = [kw for kw in SUSPICIOUS_KEYWORDS if kw in text_view]
     return decoded, meta
 
-def try_hex_decode(hextext: str, max_bytes: int = MAX_DECODE_BYTES):
+def try_hex_decode(hextext, max_bytes=MAX_DECODE_BYTES):
     meta = {"method": "hex", "attempted": True, "ok": False, "reason": None}
     s = hextext.strip().lower()
 
@@ -172,7 +172,7 @@ def try_hex_decode(hextext: str, max_bytes: int = MAX_DECODE_BYTES):
     meta["suspicious_keywords"] = [kw for kw in SUSPICIOUS_KEYWORDS if kw in text_view]
     return decoded, meta
 
-def try_url_percent_decode(text: str, max_bytes: int = MAX_DECODE_BYTES):
+def try_url_percent_decode(text, max_bytes=MAX_DECODE_BYTES):
     """
     Decode percent-encoding and return decoded text (string) and meta.
     Uses urllib.parse.unquote_plus; only applied if there are %xx patterns.
@@ -196,7 +196,7 @@ def try_url_percent_decode(text: str, max_bytes: int = MAX_DECODE_BYTES):
     meta["sha256"] = _hash_bytes(decoded.encode("utf-8"))
     return decoded, meta
 
-def try_html_unescape(text: str):
+def try_html_unescape(text):
     meta = {"method": "html_unescape", "attempted": True, "ok": False}
     if "&" not in text:
         meta["reason"] = "no_amp"
@@ -216,9 +216,7 @@ def try_html_unescape(text: str):
 # Top-level orchestrator
 # This orchestrator was enhanced using AI
 # -----------------------
-def detect_and_decode_embedded(text: str,
-                               try_decode: bool = True,
-                               max_total_decoded: int = MAX_TOTAL_DECODE_BYTES):
+def detect_and_decode_embedded(text, try_decode=True, max_total_decoded=MAX_TOTAL_DECODE_BYTES):
     """
     Given an input Unicode `text`, detect embedded encodings and (optionally) decode them.
     Returns metadata structure describing findings and a list of decoded candidate blobs (hashed only).

@@ -49,7 +49,7 @@ class AttackResult:
     shadow_tools_count: int
     generation_time_seconds: float
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self):
         """Convert to dictionary for serialization"""
         result = asdict(self)
         result['malicious_tool'] = self.malicious_tool.to_dict()
@@ -66,13 +66,7 @@ class ToolHijacker:
     - Both gradient-free and gradient-based methods
     """
     
-    def __init__(
-        self,
-        shadow_retriever: Optional[ShadowRetriever] = None,
-        shadow_llm: Optional[ShadowLLM] = None,
-        task_generator: Optional[ShadowTaskGenerator] = None,
-        tool_library: Optional[ShadowToolLibrary] = None
-    ):
+    def __init__(self, shadow_retriever= None, shadow_llm= None, task_generator= None, tool_library= None):
         """
         Initialize ToolHijacker with shadow components.
         
@@ -98,17 +92,7 @@ class ToolHijacker:
         self.shadow_tasks: List[ShadowTask] = []
         self.shadow_tools: List[ToolDocument] = []
     
-    def generate_attack(
-        self,
-        target_task: str,
-        malicious_tool_name: str,
-        optimization_method: str = "gradient_free",
-        num_shadow_tasks: int = 10,
-        num_shadow_tools_relevant: int = 10,
-        num_shadow_tools_irrelevant: int = 20,
-        top_k_retrieval: int = 5,
-        **optimizer_kwargs
-    ) -> AttackResult:
+    def generate_attack(self, target_task, malicious_tool_name, optimization_method= "gradient_free", num_shadow_tasks= 10, num_shadow_tools_relevant= 10, num_shadow_tools_irrelevant= 20, top_k_retrieval= 5, **optimizer_kwargs):
         """
         Generate a complete ToolHijacker attack.
         
@@ -208,13 +192,7 @@ class ToolHijacker:
         
         return result
     
-    def _construct_shadow_framework(
-        self,
-        target_task: str,
-        num_shadow_tasks: int,
-        num_relevant_tools: int,
-        num_irrelevant_tools: int
-    ):
+    def _construct_shadow_framework(self, target_task, num_shadow_tasks, num_relevant_tools, num_irrelevant_tools):
         """
         Construct the shadow framework (Q' and D').
         """
@@ -233,12 +211,7 @@ class ToolHijacker:
         # Set shadow tools in framework
         self.shadow_framework.set_shadow_tools(self.shadow_tools)
     
-    def _optimize_retrieval(
-        self,
-        malicious_tool: MaliciousToolDocument,
-        method: str,
-        **kwargs
-    ) -> str:
+    def _optimize_retrieval(self, malicious_tool, method, **kwargs):
         """
         Optimize the retrieval subsequence R.
         
@@ -291,13 +264,7 @@ class ToolHijacker:
             **kwargs
         )
     
-    def _optimize_selection(
-        self,
-        malicious_tool: MaliciousToolDocument,
-        retrieved_tools: List[ToolDocument],
-        method: str,
-        **kwargs
-    ) -> str:
+    def _optimize_selection(self, malicious_tool, retrieved_tools, method, **kwargs):
         """
         Optimize the selection subsequence S.
         
@@ -355,12 +322,7 @@ class ToolHijacker:
             **kwargs
         )
     
-    def test_attack(
-        self,
-        malicious_tool: MaliciousToolDocument,
-        test_tasks: List[str],
-        top_k: int = 5
-    ) -> Dict[str, Any]:
+    def test_attack(self, malicious_tool, test_tasks, top_k= 5):
         """
         Test a malicious tool against new task descriptions.
         

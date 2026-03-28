@@ -32,7 +32,7 @@ def verdict_breakdown(y_true, verdict):
     return out
 
 
-def make_compute_metrics(low: float, high: float):
+def make_compute_metrics(low, high):
     def compute_metrics(eval_pred):
         logits, labels = eval_pred
         scores = torch.softmax(torch.tensor(logits), dim=-1)[:, 1].numpy()
@@ -111,23 +111,14 @@ def tokenize_datasets(tokenizer, train_df, val_df, test_df, max_length):
     return train_ds, val_ds, test_ds
 
 
-def predict_scores(trainer: Trainer, ds):
+def predict_scores(trainer, ds):
     pred = trainer.predict(ds)
     logits = pred.predictions
     probs = torch.softmax(torch.tensor(logits), dim=-1)[:, 1].numpy()
     return probs
 
 
-def pick_hard_negative_indices(
-    y_train,
-    train_scores,
-    low: float,
-    high: float,
-    use_routing_band: bool,
-    score_min: float,
-    score_max: float,
-    max_samples: int,
-):
+def pick_hard_negative_indices(y_train, train_scores, low, high, use_routing_band, score_min, score_max, max_samples, ):
     y = np.asarray(y_train).astype(int)
     scores = np.asarray(train_scores, dtype=float)
 

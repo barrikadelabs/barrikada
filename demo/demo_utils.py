@@ -30,11 +30,7 @@ class BaselineResult:
     latency_ms: float
 
 
-def _http_json(
-    url: str,
-    payload: dict[str, Any] | None = None,
-    timeout_s: float = 20.0,
-) -> dict[str, Any]:
+def _http_json(url, payload= None, timeout_s= 20.0, ):
     if payload is None:
         req = request.Request(url, method="GET")
     else:
@@ -50,14 +46,14 @@ def _http_json(
         return json.loads(response.read().decode("utf-8"))
 
 
-def selected_runtime_model(settings: Settings):
+def selected_runtime_model(settings):
     mode = settings.layer_e_judge_mode.strip().lower()
     if mode == "finetuned":
         return settings.layer_e_runtime_finetuned_model
     return settings.layer_e_runtime_base_model
 
 
-def summarize_pipeline(result: PipelineResult):
+def summarize_pipeline(result):
     payload = result.to_dict()
     return {
         "final_verdict": payload["final_verdict"],
@@ -131,7 +127,7 @@ def layer_statuses(summary):
     return result
 
 
-def run_unprotected_baseline(prompt, settings: Settings) -> BaselineResult:
+def run_unprotected_baseline(prompt, settings):
     import time
 
     base_url = settings.layer_e_ollama_base_url.rstrip("/")

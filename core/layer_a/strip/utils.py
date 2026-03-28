@@ -63,7 +63,7 @@ SUSPICIOUS_CATEGORIES = {
     'Me',  # Mark, enclosing (combining chars that enclose)
 }
 
-def detect_homoglyphs(text: str, normalize: bool = True):
+def detect_homoglyphs(text, normalize=True):
     """
     Detect and optionally normalize homoglyph characters that could be used in attacks.
     
@@ -116,7 +116,7 @@ def detect_homoglyphs(text: str, normalize: bool = True):
     
 #     return suspicious_chars
 
-def detect_control_characters(text: str, strip_controls: bool = True):
+def detect_control_characters(text, strip_controls=True):
     """
     Detect and optionally strip control characters.
     

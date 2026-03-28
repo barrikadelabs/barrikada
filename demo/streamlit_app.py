@@ -27,7 +27,7 @@ st.set_page_config(
 )
 
 
-def inject_styles() -> None:
+def inject_styles():
     st.markdown(
         """
         <style>
@@ -126,12 +126,12 @@ def inject_styles() -> None:
 
 
 @st.cache_resource(show_spinner=True)
-def get_pipeline() -> PIPipeline:
+def get_pipeline():
     return PIPipeline()
 
 
 @st.cache_resource(show_spinner=False)
-def get_settings() -> Settings:
+def get_settings():
     return Settings()
 
 

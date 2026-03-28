@@ -116,7 +116,7 @@ def analyze_text(input_bytes):
         embedded=embedded_result
     )
 
-def _calculate_confidence(flags: list) -> float:
+def _calculate_confidence(flags):
     """
     Calculate confidence score based on detected flags
     """

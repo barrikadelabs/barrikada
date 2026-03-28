@@ -6,7 +6,7 @@ from confusable_homoglyphs import confusables
 logger = logging.getLogger(__name__)
 
 # Reference the paper 
-def script_distribution(text: str):
+def script_distribution(text):
     scripts = Counter()
     for ch in text:
         match = regex.match(r"\p{Script=Latin}|\p{Script=Cyrillic}|\p{Script=Greek}|\p{Script=Arabic}|\p{Script=Han}", ch)
@@ -26,7 +26,7 @@ def script_distribution(text: str):
             scripts["Other"] += 1
     return dict(scripts)
 
-def detect_confusables(text: str, expected_script = "Latin", threshold = 0.1):
+def detect_confusables(text, expected_script="Latin", threshold=0.1):
     scripts = script_distribution(text)
     total = sum(scripts.values())
     expected_count = scripts.get(expected_script, 0)

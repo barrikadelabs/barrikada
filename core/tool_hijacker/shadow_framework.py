@@ -27,7 +27,7 @@ class ShadowRetriever:
     Uses similarity scoring to retrieve top-k documents.
     """
     
-    def __init__(self, similarity_function: Optional[Callable] = None):
+    def __init__(self, similarity_function= None):
         """
         Args:
             similarity_function: Custom similarity function. 
@@ -36,7 +36,7 @@ class ShadowRetriever:
         self.similarity_function = similarity_function or self._default_similarity
         self.embedding_cache = {}
     
-    def _default_similarity(self, query: str, document: str) -> float:
+    def _default_similarity(self, query, document):
         """
         Default similarity using simple embedding-based cosine similarity.
         In practice, this would use a proper embedding model.
@@ -54,12 +54,7 @@ class ShadowRetriever:
         
         return len(intersection) / len(union) if union else 0.0
     
-    def retrieve(
-        self, 
-        query: str, 
-        tool_documents: List[ToolDocument], 
-        top_k: int = 5
-    ) -> List[ToolDocument]:
+    def retrieve(self, query, tool_documents, top_k= 5):
         """
         Retrieve top-k most similar tool documents for a given query.
         
@@ -82,11 +77,7 @@ class ShadowRetriever:
         scores.sort(key=lambda x: x[0], reverse=True)
         return [doc for _, doc in scores[:top_k]]
     
-    def compute_gradient(
-        self, 
-        query: str, 
-        document_text: str
-    ) -> Dict[str, Any]:
+    def compute_gradient(self, query, document_text):
         """
         Compute gradient information for gradient-based optimization.
         This is a simplified version - real implementation would use autograd.
@@ -109,19 +100,14 @@ class ShadowLLM:
     Selects a tool from the retrieved set based on the task description.
     """
     
-    def __init__(self, model_name: str = "shadow_llm"):
+    def __init__(self, model_name= "shadow_llm"):
         """
         Args:
             model_name: Identifier for the shadow LLM
         """
         self.model_name = model_name
     
-    def select_tool(
-        self,
-        task_description: str,
-        retrieved_tools: List[ToolDocument],
-        return_reasoning: bool = False
-    ) -> Dict[str, Any]:
+    def select_tool(self, task_description, retrieved_tools, return_reasoning= False):
         """
         Select the most appropriate tool from the retrieved set.
         
@@ -166,12 +152,7 @@ class ShadowLLM:
             'reasoning': f"Selected based on keyword overlap score: {best_score}" if return_reasoning else None
         }
     
-    def compute_selection_probability(
-        self,
-        task_description: str,
-        retrieved_tools: List[ToolDocument],
-        target_tool_name: str
-    ) -> float:
+    def compute_selection_probability(self, task_description, retrieved_tools, target_tool_name):
         """
         Compute the probability that the LLM selects the target tool.
         Used for gradient-based optimization.
@@ -193,11 +174,7 @@ class ShadowLLM:
             # Return partial probability based on confidence
             return selection_result['confidence'] * 0.1  # Small probability if not selected
     
-    def generate_output(
-        self,
-        task_description: str,
-        selected_tool: ToolDocument
-    ) -> str:
+    def generate_output(self, task_description, selected_tool):
         """
         Generate output containing the selected tool name.
         This simulates the LLM's response (o_t in the paper).
@@ -217,11 +194,7 @@ class ShadowFramework:
     Complete shadow framework that combines retriever, LLM, and tool library.
     """
     
-    def __init__(
-        self,
-        retriever: Optional[ShadowRetriever] = None,
-        llm: Optional[ShadowLLM] = None
-    ):
+    def __init__(self, retriever= None, llm= None):
         """
         Args:
             retriever: Shadow retriever instance
@@ -231,19 +204,15 @@ class ShadowFramework:
         self.llm = llm or ShadowLLM()
         self.shadow_tools: List[ToolDocument] = []
     
-    def add_shadow_tool(self, tool: ToolDocument):
+    def add_shadow_tool(self, tool):
         """Add a tool to the shadow tool library"""
         self.shadow_tools.append(tool)
     
-    def set_shadow_tools(self, tools: List[ToolDocument]):
+    def set_shadow_tools(self, tools):
         """Set the complete shadow tool library"""
         self.shadow_tools = tools
     
-    def execute_pipeline(
-        self,
-        task_description: str,
-        top_k: int = 5
-    ) -> Dict[str, Any]:
+    def execute_pipeline(self, task_description, top_k= 5):
         """
         Execute the complete shadow tool selection pipeline.
         
@@ -277,12 +246,7 @@ class ShadowFramework:
             'reasoning': selection_result['reasoning']
         }
     
-    def evaluate_attack_success(
-        self,
-        task_descriptions: List[str],
-        malicious_tool_name: str,
-        top_k: int = 5
-    ) -> Dict[str, Any]:
+    def evaluate_attack_success(self, task_descriptions, malicious_tool_name, top_k= 5):
         """
         Evaluate how often the malicious tool is selected across task descriptions.
         

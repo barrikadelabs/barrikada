@@ -36,7 +36,7 @@ def _cache_key(csv_path):
     return h.hexdigest()
 
 
-def load_data(csv_path, *, use_cache: bool = True):
+def load_data(csv_path, *, use_cache= True):
     """Load dataset and run Layer A + B filtering.
 
     Results are cached to disk so subsequent runs skip the expensive

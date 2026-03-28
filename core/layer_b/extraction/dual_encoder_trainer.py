@@ -123,8 +123,7 @@ class ContrastivePairDataset(Dataset):
     decision boundary between the classes.
     """
 
-    def __init__(self, mal_texts, safe_texts,
-                 mal_neg_ids, safe_neg_ids, n_hard=3, max_pairs=None):
+    def __init__(self, mal_texts, safe_texts, mal_neg_ids, safe_neg_ids, n_hard=3, max_pairs=None):
         self.items = []  # list of (anchor, positive, [hard_neg, ...])
         n_mal = len(mal_texts)
         n_safe = len(safe_texts)

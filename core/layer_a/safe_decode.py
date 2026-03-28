@@ -1,12 +1,10 @@
 import chardet
 import logging
-from typing import Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("safe_decoder")
 
-def safe_decode(raw_bytes: bytes, decode_errors: str = "replace", suspicious_threshold: int = 0, 
-                preferred_encodings: Optional[list[str]] = None, confidence_threshold: float = 0.7):
+def safe_decode(raw_bytes, decode_errors="replace", suspicious_threshold=0, preferred_encodings=None, confidence_threshold=0.7):
     """
     Safely decode raw bytes to Unicode string with robust encoding detection.
     """

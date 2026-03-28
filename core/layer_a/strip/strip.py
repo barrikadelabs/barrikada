@@ -1,7 +1,7 @@
 from .utils import *
 
 #TODO: Reevaluate whether we need to return detailed metadata for downstream layers
-def strip_suspicious_characters(text: str):
+def strip_suspicious_characters(text):
     """
     suspicious character detection and removal for prompt injection mitigation.
     

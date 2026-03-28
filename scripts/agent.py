@@ -22,11 +22,7 @@ DEFAULT_MODEL_NAME = "gpt-oss:latest"
 class BarrikadaAgent:
     """LLM agent with Barrikada screening on every inbound message."""
 
-    def __init__(
-        self,
-        model_name: str = DEFAULT_MODEL_NAME,
-        max_history: int = 20,
-    ):
+    def __init__(self, model_name= DEFAULT_MODEL_NAME, max_history= 20, ):
         self.pipeline = PIPipeline()
 
         llm = OllamaLLM(model=model_name)
@@ -43,7 +39,7 @@ class BarrikadaAgent:
 
     # ── public API ───────────────────────────────────────────────────────
 
-    def invoke(self, question: str, max_retries: int = 3) -> dict:
+    def invoke(self, question, max_retries= 3):
         """Screen *question* through Barrikada, then (if allowed) forward to the LLM.
 
         Returns a dict with keys:
@@ -90,11 +86,7 @@ class BarrikadaAgent:
 
 # ── CSV evaluation ───────────────────────────────────────────────────────────
 
-def evaluate(
-    csv_path: str = "datasets/barrikada_test.csv",
-    model_name: str = DEFAULT_MODEL_NAME,
-    max_samples: Optional[int] = None,
-):
+def evaluate(csv_path= "datasets/barrikada_test.csv", model_name= DEFAULT_MODEL_NAME, max_samples= None, ):
     """Run every prompt in *csv_path* through the Barrikada-wrapped agent.
 
     Saves per-row results and a summary JSON to test_results/agent/.
@@ -193,7 +185,7 @@ def evaluate(
 
 # ── interactive mode ─────────────────────────────────────────────────────────
 
-def interactive(model_name: str = DEFAULT_MODEL_NAME):
+def interactive(model_name= DEFAULT_MODEL_NAME):
     """Chat with the Barrikada-wrapped agent in the terminal."""
     agent = BarrikadaAgent(model_name=model_name)
     print("Barrikada Agent  (type 'quit' to exit, 'clear' to reset history)\n")

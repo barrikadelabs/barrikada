@@ -15,19 +15,14 @@ class RetrievalOptimizer:
     Optimizes R to maximize similarity with shadow task descriptions.
     """
     
-    def __init__(self, shadow_retriever: ShadowRetriever):
+    def __init__(self, shadow_retriever):
         """
         Args:
             shadow_retriever: The shadow retriever to use for optimization
         """
         self.shadow_retriever = shadow_retriever
     
-    def optimize(
-        self,
-        shadow_tasks: List[ShadowTask],
-        malicious_tool: MaliciousToolDocument,
-        **kwargs
-    ) -> str:
+    def optimize(self, shadow_tasks, malicious_tool, **kwargs):
         """
         Optimize the retrieval subsequence R.
         
@@ -47,11 +42,7 @@ class GradientFreeRetrievalOptimizer(RetrievalOptimizer):
     Uses an LLM to synthesize core functionalities from shadow tasks.
     """
     
-    def __init__(
-        self,
-        shadow_retriever: ShadowRetriever,
-        llm_generator: Optional[Any] = None
-    ):
+    def __init__(self, shadow_retriever, llm_generator= None):
         """
         Args:
             shadow_retriever: The shadow retriever
@@ -60,7 +51,7 @@ class GradientFreeRetrievalOptimizer(RetrievalOptimizer):
         super().__init__(shadow_retriever)
         self.llm_generator = llm_generator or self._default_generator
     
-    def _default_generator(self, prompt: str) -> str:
+    def _default_generator(self, prompt):
         """
         Default generator using simple heuristics.
         In practice, this would use an actual LLM API.
@@ -69,13 +60,7 @@ class GradientFreeRetrievalOptimizer(RetrievalOptimizer):
         # This is a placeholder - real implementation would use LLM
         return "A comprehensive tool for handling various tasks"
     
-    def optimize(
-        self,
-        shadow_tasks: List[ShadowTask],
-        malicious_tool: MaliciousToolDocument,
-        max_length: int = 200,
-        **kwargs
-    ) -> str:
+    def optimize(self, shadow_tasks, malicious_tool, max_length= 200, **kwargs):
         """
         Generate R by synthesizing core functionalities from shadow tasks.
         
@@ -109,7 +94,7 @@ class GradientFreeRetrievalOptimizer(RetrievalOptimizer):
         
         return r_generated
     
-    def _create_synthesis_prompt(self, task_queries: List[str], max_length: int) -> str:
+    def _create_synthesis_prompt(self, task_queries, max_length):
         """
         Create a prompt for the LLM to generate R.
         """
@@ -130,7 +115,7 @@ Tool functionality description:"""
         
         return prompt
     
-    def _extract_common_functionalities(self, task_queries: List[str]) -> str:
+    def _extract_common_functionalities(self, task_queries):
         """
         Extract common functionalities from task queries using heuristics.
         Fallback method when LLM is not available.
@@ -158,7 +143,7 @@ Tool functionality description:"""
         
         return description
     
-    def _compute_average_similarity(self, r_text: str, task_queries: List[str]) -> float:
+    def _compute_average_similarity(self, r_text, task_queries):
         """
         Compute average similarity between R and all task queries.
         """
@@ -176,11 +161,7 @@ class GradientBasedRetrievalOptimizer(RetrievalOptimizer):
     Uses HotFlip-style token-level optimization with gradient information.
     """
     
-    def __init__(
-        self,
-        shadow_retriever: ShadowRetriever,
-        vocabulary: Optional[List[str]] = None
-    ):
+    def __init__(self, shadow_retriever, vocabulary= None):
         """
         Args:
             shadow_retriever: The shadow retriever with gradient support
@@ -189,7 +170,7 @@ class GradientBasedRetrievalOptimizer(RetrievalOptimizer):
         super().__init__(shadow_retriever)
         self.vocabulary = vocabulary or self._default_vocabulary()
     
-    def _default_vocabulary(self) -> List[str]:
+    def _default_vocabulary(self):
         """
         Default vocabulary of common words.
         In practice, this would be a proper tokenizer vocabulary.
@@ -203,15 +184,7 @@ class GradientBasedRetrievalOptimizer(RetrievalOptimizer):
         ]
         return common_words
     
-    def optimize(
-        self,
-        shadow_tasks: List[ShadowTask],
-        malicious_tool: MaliciousToolDocument,
-        initial_r: Optional[str] = None,
-        num_iterations: int = 100,
-        num_tokens: int = 30,
-        **kwargs
-    ) -> str:
+    def optimize(self, shadow_tasks, malicious_tool, initial_r= None, num_iterations= 100, num_tokens= 30, **kwargs):
         """
         Optimize R using gradient-based token-level optimization (HotFlip).
         
@@ -276,7 +249,7 @@ class GradientBasedRetrievalOptimizer(RetrievalOptimizer):
         
         return best_r
     
-    def _compute_objective(self, r_text: str, task_queries: List[str]) -> float:
+    def _compute_objective(self, r_text, task_queries):
         """
         Compute the objective function: average similarity across all queries.
         This simulates the gradient-based objective in the paper.
@@ -295,12 +268,7 @@ class GradientBasedRetrievalOptimizer(RetrievalOptimizer):
         
         return float(np.mean(similarities)) if similarities else 0.0
     
-    def compute_gradient_approximation(
-        self,
-        r_text: str,
-        task_queries: List[str],
-        epsilon: float = 0.01
-    ) -> Dict[str, float]:
+    def compute_gradient_approximation(self, r_text, task_queries, epsilon= 0.01):
         """
         Compute gradient approximation using finite differences.
         This is a simplified version of the gradient computation in the paper.

@@ -16,15 +16,15 @@ class ShadowToolLibrary:
         """Initialize empty shadow tool library"""
         self.tools: List[ToolDocument] = []
     
-    def add_tool(self, tool: ToolDocument):
+    def add_tool(self, tool):
         """Add a single tool to the library"""
         self.tools.append(tool)
     
-    def add_tools(self, tools: List[ToolDocument]):
+    def add_tools(self, tools):
         """Add multiple tools to the library"""
         self.tools.extend(tools)
     
-    def get_tools(self) -> List[ToolDocument]:
+    def get_tools(self):
         """Get all tools in the library"""
         return self.tools.copy()
     
@@ -32,11 +32,7 @@ class ShadowToolLibrary:
         """Clear all tools from the library"""
         self.tools = []
     
-    def build_default_library(
-        self,
-        num_relevant: int = 10,
-        num_irrelevant: int = 20
-    ) -> List[ToolDocument]:
+    def build_default_library(self, num_relevant= 10, num_irrelevant= 20):
         """
         Build a default shadow tool library with generic tools.
         
@@ -182,11 +178,7 @@ class ShadowToolLibrary:
         
         return self.tools.copy()
     
-    def build_custom_library(
-        self,
-        relevant_tools: List[ToolDocument],
-        irrelevant_tools: List[ToolDocument]
-    ) -> List[ToolDocument]:
+    def build_custom_library(self, relevant_tools, irrelevant_tools):
         """
         Build a custom shadow tool library from provided tools.
         
@@ -201,11 +193,11 @@ class ShadowToolLibrary:
         self.tools = relevant_tools + irrelevant_tools
         return self.tools.copy()
     
-    def size(self) -> int:
+    def size(self):
         """Get the number of tools in the library"""
         return len(self.tools)
     
-    def get_tool_by_name(self, name: str) -> Optional[ToolDocument]:
+    def get_tool_by_name(self, name):
         """
         Get a tool by its name.
         
@@ -220,7 +212,7 @@ class ShadowToolLibrary:
                 return tool
         return None
     
-    def remove_tool(self, name: str) -> bool:
+    def remove_tool(self, name):
         """
         Remove a tool from the library by name.
         

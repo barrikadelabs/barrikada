@@ -33,7 +33,7 @@ class PipelineResult:
     decision_layer: DecisionLayer  # "A", "B", "C", "D", or "E"
     confidence_score: float  # confidence of the deciding layer
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self):
         #Convert to dictionary for outpput
         return {
             'input_hash': self.input_hash,

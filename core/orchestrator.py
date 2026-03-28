@@ -57,20 +57,7 @@ class PIPipeline:
             judge_mode=judge_mode_literal,
         )
 
-    def _create_result(
-        self,
-        input_hash,
-        start_time,
-        layer_a_result,
-        final_verdict: FinalVerdict,
-        decision_layer: DecisionLayer,
-        confidence_score: float,
-        layer_b_result=None,
-        layer_c_result=None,
-        layer_d_result=None,
-        layer_e_result_dict=None,
-        layer_e_time_ms=None,
-    ):
+    def _create_result(self, input_hash, start_time, layer_a_result, final_verdict, decision_layer, confidence_score, layer_b_result=None, layer_c_result=None, layer_d_result=None, layer_e_result_dict=None, layer_e_time_ms=None, ):
         total_time = (time.time() - start_time) * 1000
         return PipelineResult(
             input_hash=input_hash,
@@ -90,7 +77,7 @@ class PIPipeline:
             confidence_score=confidence_score,
         )
 
-    def detect(self, input_text: str) -> PipelineResult:
+    def detect(self, input_text):
         start_time = time.time()
         input_hash = hashlib.sha256(input_text.encode()).hexdigest()[:16]
 

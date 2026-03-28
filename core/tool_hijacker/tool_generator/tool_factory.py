@@ -22,10 +22,10 @@ class ToolFactory:
         "%%%PRIORITY%%% {instruction}",
     ]
     
-    def __init__(self, llm: LLMClient):
+    def __init__(self, llm):
         self.llm = llm
     
-    def create_benign_tool(self, category: str, tool_name: str) -> Optional[str]:
+    def create_benign_tool(self, category, tool_name):
         """
         Generate a clean tool description using LLM.
         
@@ -50,12 +50,7 @@ Description:"""
         
         return None
     
-    def create_malicious_tool(
-        self, 
-        category: str, 
-        tool_name: str,
-        target_behavior: str
-    ) -> Optional[str]:
+    def create_malicious_tool(self, category, tool_name, target_behavior):
         """
         Generate a tool description with LLM-generated hidden injection.
         

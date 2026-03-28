@@ -24,7 +24,7 @@ class LayerAResult:
     confusables: Dict[str, Any]
     embedded: Dict[str, Any]
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self):
         """Convert to dictionary for serialization"""
         return {
             'original_text': self.original_text,
@@ -38,7 +38,7 @@ class LayerAResult:
             'embedded': self.embedded
         }
     
-    def get_verdict(self) -> str:
+    def get_verdict(self):
         """Get verdict based on flags severity"""
         if not self.suspicious:
             return 'allow'
@@ -56,7 +56,7 @@ class LayerAResult:
         # Low severity flags
         return 'flag'
     
-    def get_risk_score(self) -> float:
+    def get_risk_score(self):
         """Calculate risk score contribution (0-100)"""
         if not self.suspicious:
             return 0.0

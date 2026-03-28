@@ -12,7 +12,7 @@ class DetectionResult:
     total_score: float
     highest_severity: Optional[Severity]
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self):
         """Convert to dictionary for serialization"""
         return {
             'input_hash': self.input_hash,

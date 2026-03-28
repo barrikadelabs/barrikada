@@ -47,7 +47,7 @@ def verdict_breakdown(y_true, verdict):
             out[decision][str(label)] = int(np.sum((y == label) & (v == decision)))
     return out
 
-def calibration_metrics(y_true, y_prob, bins: int):
+def calibration_metrics(y_true, y_prob, bins):
     y = np.asarray(y_true).astype(int)
     p = np.asarray(y_prob, dtype=float)
     n = len(y)
@@ -84,7 +84,7 @@ def calibration_metrics(y_true, y_prob, bins: int):
     }
 
 
-def threshold_margin(scores, low: float, high: float):
+def threshold_margin(scores, low, high):
     s = np.asarray(scores, dtype=float)
     low_dist = np.abs(s - low)
     high_dist = np.abs(s - high)
@@ -114,7 +114,7 @@ def embedding_stats(emb):
     }
 
 
-def top_feature_importance(model, top_n: int = 20):
+def top_feature_importance(model, top_n=20):
     importances = np.asarray(getattr(model, "feature_importances_", []), dtype=float)
     if importances.size == 0:
         return []
@@ -128,16 +128,7 @@ def top_feature_importance(model, top_n: int = 20):
     ]
 
 
-def pick_hard_negative_indices(
-    y_train,
-    train_scores,
-    low: float,
-    high: float,
-    use_routing_band: bool,
-    score_min: float,
-    score_max: float,
-    max_samples: int,
-):
+def pick_hard_negative_indices(y_train, train_scores, low, high, use_routing_band, score_min, score_max, max_samples, ):
     y = np.asarray(y_train).astype(int)
     scores = np.asarray(train_scores, dtype=float)
 
@@ -160,7 +151,7 @@ def pick_hard_negative_indices(
     return ranked.astype(int), mine_min, mine_max
 
 
-def augment_with_hard_negatives(X_train, y_train, hard_idx, multiplier: int):
+def augment_with_hard_negatives(X_train, y_train, hard_idx, multiplier):
     if hard_idx.size == 0 or multiplier <= 0:
         return X_train, y_train
 
@@ -170,7 +161,7 @@ def augment_with_hard_negatives(X_train, y_train, hard_idx, multiplier: int):
     return X_aug, y_aug
 
 
-def build_split_metrics(y_true, raw_scores, calibrated_scores, low: float, high: float, cal_bins: int):
+def build_split_metrics(y_true, raw_scores, calibrated_scores, low, high, cal_bins):
     y = np.asarray(y_true).astype(int)
     raw = np.asarray(raw_scores, dtype=float)
     cal = np.asarray(calibrated_scores, dtype=float)

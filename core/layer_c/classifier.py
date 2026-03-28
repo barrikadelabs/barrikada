@@ -1,6 +1,5 @@
 import time
 from dataclasses import dataclass
-from typing import Any
 
 import torch
 import joblib
@@ -15,7 +14,7 @@ class Thresholds:
     low: float = 0.35
     high: float = 0.85
 
-    def validate(self) -> None:
+    def validate(self):
         if not (0.0 <= self.low <= 1.0 and 0.0 <= self.high <= 1.0):
             raise ValueError("Thresholds must be within [0,1]")
         if self.low >= self.high:
@@ -23,13 +22,7 @@ class Thresholds:
 
 
 class Classifier:
-    def __init__(
-        self,
-        model_path: str,
-        embedding_model: str = "all-mpnet-base-v2",
-        low: float = 0.35,
-        high: float = 0.85,
-    ):
+    def __init__(self, model_path, embedding_model="all-mpnet-base-v2", low=0.35, high=0.85, ):
         _device = "cuda" if torch.cuda.is_available() else "cpu"
         self.encoder = SentenceTransformer(embedding_model, device=_device)
         artifact = joblib.load(model_path)
@@ -43,7 +36,7 @@ class Classifier:
         self.thresholds = Thresholds(low=low, high=high)
         self.thresholds.validate()
 
-    def predict(self, input_text) -> LayerCResult:
+    def predict(self, input_text):
         start_time = time.time()
 
         emb = self.encoder.encode([input_text], normalize_embeddings=True)

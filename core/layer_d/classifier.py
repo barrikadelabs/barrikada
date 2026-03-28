@@ -12,7 +12,7 @@ class Thresholds:
     low: float = 0.05
     high: float = 0.95
 
-    def validate(self) -> None:
+    def validate(self):
         if not (0.0 <= self.low <= 1.0 and 0.0 <= self.high <= 1.0):
             raise ValueError("Thresholds must be within [0,1]")
         if self.low >= self.high:
@@ -20,13 +20,7 @@ class Thresholds:
 
 
 class LayerDClassifier:
-    def __init__(
-        self,
-        model_dir: str,
-        low: float = 0.05,
-        high: float = 0.95,
-        max_length: int = 512,
-    ):
+    def __init__(self, model_dir, low=0.05, high=0.95, max_length=512, ):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.max_length = max_length
         self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
@@ -53,7 +47,7 @@ class LayerDClassifier:
 
         return probs.float().detach().cpu().numpy()
 
-    def predict(self, input_text) -> LayerDResult:
+    def predict(self, input_text):
         start_time = time.time()
         probability_score = float(self._score_batch([input_text])[0])
 

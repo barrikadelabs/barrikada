@@ -16,6 +16,9 @@ class JudgeOutput(BaseModel):
     no_think: bool
     raw_response: str
     reasoning_trace: str | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
 
 
 BASE_SYSTEM_PROMPT = """You are the final security judge for prompt injection detection.
@@ -46,7 +49,7 @@ Output format requirements:
 """
 
 
-def build_user_prompt(input_text: str, mode: Literal["base", "finetuned"] = "base") -> str:
+def build_user_prompt(input_text, mode="base"):
     common = (
         "<input_text>\n"
         f"{input_text}\n"

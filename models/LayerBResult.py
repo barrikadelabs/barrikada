@@ -24,7 +24,7 @@ class LayerBResult:
     allowlisted: bool = False
     allowlist_rules: List[str] = field(default_factory=list)
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self):
         """Convert to dictionary for serialization"""
         return {
             'input_hash': self.input_hash,
@@ -52,7 +52,7 @@ class LayerBResult:
             'allowlist_rules': list(self.allowlist_rules),
         }
 
-    def get_risk_score(self) -> float:
+    def get_risk_score(self):
         """Calculate risk score contribution (0-100)."""
         if self.allowlisted:
             return 0.0

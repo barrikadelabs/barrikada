@@ -31,13 +31,7 @@ def _to_conversation_text(tokenizer, text, label):
     )
 
 
-def train_teacher_qwen35(
-    X,
-    y,
-    *,
-    output_dir: str,
-    teacher_model_id: str | None = None,
-):
+def train_teacher_qwen35(X, y, *, output_dir, teacher_model_id= None, ):
     import torch
     from peft import LoraConfig, get_peft_model
     from trl.trainer.sft_config import SFTConfig

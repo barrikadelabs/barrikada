@@ -30,10 +30,11 @@ def _emb_cache_path(texts, model_name):
     return _EMB_CACHE_DIR / f"{h.hexdigest()}.npy"
 
 
-def encode_texts(texts, model: SentenceTransformer, batch_size=None, use_cache=True):
+def encode_texts(texts, model, batch_size=None, use_cache=True):
     if batch_size is None:
         batch_size = _settings.layer_c_embedding_batch_size
     texts_list = list(texts)
+    cache_path = None
 
     if use_cache:
         _EMB_CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -44,9 +45,9 @@ def encode_texts(texts, model: SentenceTransformer, batch_size=None, use_cache=T
 
     emb = model.encode(texts_list, batch_size=batch_size, show_progress_bar=True, normalize_embeddings=True)
 
-    if use_cache:
-        np.save(cache_path, emb)  # type: ignore
-        print(f"[emb cache] Saved embeddings to {cache_path.name}")  # type: ignore
+    if use_cache and cache_path is not None:
+        np.save(cache_path, emb)
+        print(f"[emb cache] Saved embeddings to {cache_path.name}")
 
     return emb
 

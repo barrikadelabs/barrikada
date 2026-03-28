@@ -111,9 +111,7 @@ def build_centroids(embeddings, labels, n_clusters):
     }
 
 
-def compute_cluster_purity(attack_labels,
-                           benign_embeddings, centroids_array, cluster_ids,
-                           proximity_threshold=0.50):
+def compute_cluster_purity(attack_labels, benign_embeddings, centroids_array, cluster_ids, proximity_threshold=0.50):
     """
     For each attack cluster, measure what fraction of nearby prompts
     are truly attack text.
@@ -164,8 +162,7 @@ def compute_cluster_radii(embeddings, labels, centroids_array, cluster_ids):
     return radii
 
 
-def filter_clusters_by_purity(centroids_array, cluster_ids, cluster_sizes,
-                               purity, radii, min_purity=0.90):
+def filter_clusters_by_purity(centroids_array, cluster_ids, cluster_sizes, purity, radii, min_purity=0.90):
     """Remove clusters below the purity threshold.
 
     Returns filtered (centroids, cluster_ids, cluster_sizes, radii).
@@ -200,8 +197,7 @@ def build_faiss_index(centroids):
 # Metadata
 # ---------------------------------------------------------------------------
 
-def collect_metadata(cluster_ids, cluster_sizes, labels, texts,
-                     model_name, n_clusters, purity, radii):
+def collect_metadata(cluster_ids, cluster_sizes, labels, texts, model_name, n_clusters, purity, radii):
     """Build metadata dict for serialisation."""
     clusters_info = []
     for cid, size in zip(cluster_ids, cluster_sizes):
@@ -229,8 +225,7 @@ def collect_metadata(cluster_ids, cluster_sizes, labels, texts,
 # Persistence
 # ---------------------------------------------------------------------------
 
-def save_artifacts(output_dir, attack_centroids, attack_index, attack_metadata,
-                   benign_centroids, benign_index, radii):
+def save_artifacts(output_dir, attack_centroids, attack_index, attack_metadata, benign_centroids, benign_index, radii):
     """Persist all artifacts (attack + benign centroids, FAISS indices, metadata)."""
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)

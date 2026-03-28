@@ -27,17 +27,7 @@ class _JudgeParseResult:
 
 
 class LLMJudge:
-    def __init__(
-        self,
-        llm_base_url: str = LLM_BASE_URL,
-        model_name: str = RUNTIME_MODEL,
-        temperature: float = TEMPERATURE,
-        timeout_s: float = 30.0,
-        max_retries: int = 2,
-        max_new_tokens: int = 16,
-        no_think_default: bool = True,
-        judge_mode: Literal["base", "finetuned"] = JUDGE_MODE,
-    ):
+    def __init__(self, llm_base_url=LLM_BASE_URL, model_name=RUNTIME_MODEL, temperature=TEMPERATURE, timeout_s=30.0, max_retries=2, max_new_tokens=16, no_think_default=True, judge_mode=JUDGE_MODE, ):
         self.llm_base_url = llm_base_url.rstrip("/")
         self.model_name = model_name
         self.temperature = float(temperature)
@@ -45,9 +35,9 @@ class LLMJudge:
         self.max_retries = int(max_retries)
         self.max_new_tokens = int(max_new_tokens)
         self.no_think_default = bool(no_think_default)
-        self.judge_mode: Literal["base", "finetuned"] = judge_mode
+        self.judge_mode = judge_mode
 
-    def _post_chat(self, messages: list[dict], no_think: bool) -> dict:
+    def _post_chat(self, messages, no_think):
         payload = {
             "model": self.model_name,
             "stream": False,
@@ -72,7 +62,7 @@ class LLMJudge:
             return json.loads(resp.read().decode("utf-8"))
 
     @staticmethod
-    def _parse_output(content: str) -> _JudgeParseResult | None:
+    def _parse_output(content):
         verdict_match = _VERDICT_RE.search(content)
         if verdict_match is None:
             bare = content.strip().upper()
@@ -87,7 +77,7 @@ class LLMJudge:
         rationale = rationale_match.group(1).strip() if rationale_match else "No rationale provided"
         return _JudgeParseResult(decision=decision, rationale=rationale)
 
-    def call_judge(self, prompt: str, *, no_think: bool | None = None, max_retries: int | None = None) -> JudgeOutput:
+    def call_judge(self, prompt, *, no_think=None, max_retries=None):
         retries = self.max_retries if max_retries is None else int(max_retries)
         use_no_think = self.no_think_default if no_think is None else bool(no_think)
 
@@ -107,6 +97,14 @@ class LLMJudge:
                 message = response.get("message", {})
                 content = str(message.get("content", "")).strip()
                 reasoning = message.get("thinking")
+                prompt_tokens = response.get("prompt_eval_count")
+                completion_tokens = response.get("eval_count")
+
+                prompt_tokens_int = int(prompt_tokens) if isinstance(prompt_tokens, int) else None
+                completion_tokens_int = int(completion_tokens) if isinstance(completion_tokens, int) else None
+                total_tokens_int = None
+                if prompt_tokens_int is not None or completion_tokens_int is not None:
+                    total_tokens_int = int((prompt_tokens_int or 0) + (completion_tokens_int or 0))
 
                 parsed = self._parse_output(content)
                 if parsed is None:
@@ -119,6 +117,9 @@ class LLMJudge:
                     no_think=use_no_think,
                     raw_response=content,
                     reasoning_trace=str(reasoning).strip() if reasoning else None,
+                    prompt_tokens=prompt_tokens_int,
+                    completion_tokens=completion_tokens_int,
+                    total_tokens=total_tokens_int,
                 )
             except (ValueError, error.HTTPError, error.URLError, TimeoutError, json.JSONDecodeError) as exc:
                 last_error = str(exc)
@@ -132,4 +133,7 @@ class LLMJudge:
             no_think=use_no_think,
             raw_response="",
             reasoning_trace=None,
+            prompt_tokens=None,
+            completion_tokens=None,
+            total_tokens=None,
         )

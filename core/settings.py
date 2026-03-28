@@ -107,7 +107,7 @@ class Settings(BaseModel):
     def layer_c_release_dir(self):
         return str(self._project_root / "core" / "layer_c" / "outputs" / "releases")
 
-    def _resolve_release_version(self, release_dir: Path, version: str):
+    def _resolve_release_version(self, release_dir, version):
         if version == "legacy":
             return None
         if version == "latest":

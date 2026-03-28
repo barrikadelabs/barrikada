@@ -1,6 +1,6 @@
 from core.orchestrator import PIPipeline
 
-def analyze_performance(input_text: str, num_runs: int = 100):
+def analyze_performance(input_text, num_runs= 100):
     """Analyze pipeline performance with multiple runs.
 
     Args:

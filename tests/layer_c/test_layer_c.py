@@ -31,7 +31,7 @@ def load_test_data(csv_path):
     return df["text"].tolist(), df["label"].tolist()
 
 
-def filter_through_layer_b(texts, labels):    
+def filter_through_layer_b(texts, labels):
     layer_b = SignatureEngine()
     
     flagged_texts = []

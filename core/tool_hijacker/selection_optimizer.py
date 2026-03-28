@@ -26,7 +26,7 @@ class SelectionNode:
             self.children = []
     
     @property
-    def success_rate(self) -> float:
+    def success_rate(self):
         """Calculate success rate for this node"""
         return self.success_count / self.total_trials if self.total_trials > 0 else 0.0
 
@@ -37,20 +37,14 @@ class SelectionOptimizer:
     Optimizes S to maximize the probability that the shadow LLM selects the malicious tool.
     """
     
-    def __init__(self, shadow_llm: ShadowLLM):
+    def __init__(self, shadow_llm):
         """
         Args:
             shadow_llm: The shadow LLM to use for optimization
         """
         self.shadow_llm = shadow_llm
     
-    def optimize(
-        self,
-        shadow_tasks: List[ShadowTask],
-        malicious_tool: MaliciousToolDocument,
-        retrieved_tools: List[ToolDocument],
-        **kwargs
-    ) -> str:
+    def optimize(self, shadow_tasks, malicious_tool, retrieved_tools, **kwargs):
         """
         Optimize the selection subsequence S.
         
@@ -71,11 +65,7 @@ class GradientFreeSelectionOptimizer(SelectionOptimizer):
     Uses Tree-of-Attack with an attacker LLM to generate S variants.
     """
     
-    def __init__(
-        self,
-        shadow_llm: ShadowLLM,
-        attacker_llm: Optional[Any] = None
-    ):
+    def __init__(self, shadow_llm, attacker_llm= None):
         """
         Args:
             shadow_llm: The shadow LLM (E')
@@ -84,7 +74,7 @@ class GradientFreeSelectionOptimizer(SelectionOptimizer):
         super().__init__(shadow_llm)
         self.attacker_llm = attacker_llm or self._default_attacker
     
-    def _default_attacker(self, prompt: str) -> List[str]:
+    def _default_attacker(self, prompt):
         """
         Default attacker LLM using simple heuristics.
         In practice, this would use an actual LLM API.
@@ -99,16 +89,7 @@ class GradientFreeSelectionOptimizer(SelectionOptimizer):
         ]
         return variants
     
-    def optimize(
-        self,
-        shadow_tasks: List[ShadowTask],
-        malicious_tool: MaliciousToolDocument,
-        retrieved_tools: List[ToolDocument],
-        max_depth: int = 3,
-        branching_factor: int = 5,
-        prune_threshold: float = 0.3,
-        **kwargs
-    ) -> str:
+    def optimize(self, shadow_tasks, malicious_tool, retrieved_tools, max_depth= 3, branching_factor= 5, prune_threshold= 0.3, **kwargs):
         """
         Optimize S using Tree-of-Attack approach.
         
@@ -187,14 +168,7 @@ class GradientFreeSelectionOptimizer(SelectionOptimizer):
         
         return best_s
     
-    def _generate_s_variants(
-        self,
-        current_s: str,
-        malicious_tool: MaliciousToolDocument,
-        retrieved_tools: List[ToolDocument],
-        num_variants: int,
-        feedback: str = ""
-    ) -> List[str]:
+    def _generate_s_variants(self, current_s, malicious_tool, retrieved_tools, num_variants, feedback= ""):
         """
         Generate S variants using the attacker LLM.
         
@@ -237,13 +211,7 @@ class GradientFreeSelectionOptimizer(SelectionOptimizer):
         
         return variants[:num_variants]
     
-    def _create_attacker_prompt(
-        self,
-        current_s: str,
-        malicious_tool: MaliciousToolDocument,
-        retrieved_tools: List[ToolDocument],
-        feedback: str
-    ) -> str:
+    def _create_attacker_prompt(self, current_s, malicious_tool, retrieved_tools, feedback):
         """
         Create prompt for attacker LLM to generate S variants.
         """
@@ -269,7 +237,7 @@ Provide only the S variants, one per line:"""
         
         return prompt
     
-    def _create_feedback(self, node: SelectionNode) -> str:
+    def _create_feedback(self, node):
         """
         Create feedback for the attacker LLM based on node performance.
         """
@@ -285,13 +253,7 @@ Provide only the S variants, one per line:"""
         else:
             return "Previous variants worked well. Generate similar variants with slight variations."
     
-    def _evaluate_s_variant(
-        self,
-        s_variant: str,
-        malicious_tool: MaliciousToolDocument,
-        retrieved_tools: List[ToolDocument],
-        task_queries: List[str]
-    ) -> int:
+    def _evaluate_s_variant(self, s_variant, malicious_tool, retrieved_tools, task_queries):
         """
         Evaluate how many tasks result in selecting the malicious tool with this S.
         
@@ -333,11 +295,7 @@ class GradientBasedSelectionOptimizer(SelectionOptimizer):
     Maximizes the probability that the shadow LLM generates the target output containing d_t_name.
     """
     
-    def __init__(
-        self,
-        shadow_llm: ShadowLLM,
-        vocabulary: Optional[List[str]] = None
-    ):
+    def __init__(self, shadow_llm, vocabulary= None):
         """
         Args:
             shadow_llm: The shadow LLM with gradient support
@@ -346,7 +304,7 @@ class GradientBasedSelectionOptimizer(SelectionOptimizer):
         super().__init__(shadow_llm)
         self.vocabulary = vocabulary or self._default_vocabulary()
     
-    def _default_vocabulary(self) -> List[str]:
+    def _default_vocabulary(self):
         """Default vocabulary for token-level optimization"""
         return [
             'recommended', 'best', 'optimal', 'superior', 'ideal', 'perfect',
@@ -357,16 +315,7 @@ class GradientBasedSelectionOptimizer(SelectionOptimizer):
             'tool', 'solution', 'method', 'approach', 'option', 'choice'
         ]
     
-    def optimize(
-        self,
-        shadow_tasks: List[ShadowTask],
-        malicious_tool: MaliciousToolDocument,
-        retrieved_tools: List[ToolDocument],
-        num_iterations: int = 50,
-        num_tokens: int = 20,
-        learning_rate: float = 0.1,
-        **kwargs
-    ) -> str:
+    def optimize(self, shadow_tasks, malicious_tool, retrieved_tools, num_iterations= 50, num_tokens= 20, learning_rate= 0.1, **kwargs):
         """
         Optimize S using gradient-based token-level optimization.
         Minimizes L_all = L1 + L2 + L3 (alignment + consistency + perplexity).
@@ -445,14 +394,7 @@ class GradientBasedSelectionOptimizer(SelectionOptimizer):
         
         return best_s
     
-    def _compute_loss(
-        self,
-        s_text: str,
-        malicious_tool: MaliciousToolDocument,
-        retrieved_tools: List[ToolDocument],
-        task_queries: List[str],
-        target_tool_name: str
-    ) -> float:
+    def _compute_loss(self, s_text, malicious_tool, retrieved_tools, task_queries, target_tool_name):
         """
         Compute overall loss L_all = L1 + L2 + L3.
         
@@ -484,14 +426,7 @@ class GradientBasedSelectionOptimizer(SelectionOptimizer):
         
         return total_loss
     
-    def _compute_alignment_loss(
-        self,
-        s_text: str,
-        malicious_tool: MaliciousToolDocument,
-        retrieved_tools: List[ToolDocument],
-        task_queries: List[str],
-        target_tool_name: str
-    ) -> float:
+    def _compute_alignment_loss(self, s_text, malicious_tool, retrieved_tools, task_queries, target_tool_name):
         """
         Compute L1: Alignment loss.
         Measures how often the target tool is selected.
@@ -521,14 +456,7 @@ class GradientBasedSelectionOptimizer(SelectionOptimizer):
         
         return float(loss)
     
-    def _compute_consistency_loss(
-        self,
-        s_text: str,
-        malicious_tool: MaliciousToolDocument,
-        retrieved_tools: List[ToolDocument],
-        task_queries: List[str],
-        target_tool_name: str
-    ) -> float:
+    def _compute_consistency_loss(self, s_text, malicious_tool, retrieved_tools, task_queries, target_tool_name):
         """
         Compute L2: Consistency loss.
         Measures whether the tool name appears in generated output.
@@ -560,7 +488,7 @@ class GradientBasedSelectionOptimizer(SelectionOptimizer):
         
         return float(loss)
     
-    def _compute_perplexity_loss(self, s_text: str) -> float:
+    def _compute_perplexity_loss(self, s_text):
         """
         Compute L3: Perplexity loss.
         Penalizes unnatural or incoherent text.

@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 
-def current_git_commit(project_root: Path) -> str:
+def current_git_commit(project_root):
     try:
         out = subprocess.check_output(
             ["git", "-C", str(project_root), "rev-parse", "HEAD"],
@@ -18,7 +18,7 @@ def current_git_commit(project_root: Path) -> str:
         return "unknown"
 
 
-def file_sha256(path: Path) -> str:
+def file_sha256(path):
     h = hashlib.sha256()
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
@@ -26,7 +26,7 @@ def file_sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def dir_sha256(path: Path) -> str:
+def dir_sha256(path):
     h = hashlib.sha256()
     files = sorted(p for p in path.rglob("*") if p.is_file())
     for f in files:
@@ -38,17 +38,17 @@ def dir_sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def write_manifest(path: Path, payload: dict) -> None:
+def write_manifest(path, payload):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True))
 
 
-def update_latest_pointer(release_root: Path, version: str) -> None:
+def update_latest_pointer(release_root, version):
     release_root.mkdir(parents=True, exist_ok=True)
     (release_root / "LATEST").write_text(version.strip() + "\n")
 
 
-def read_latest_pointer(release_root: Path) -> str | None:
+def read_latest_pointer(release_root):
     pointer = release_root / "LATEST"
     if not pointer.exists():
         return None

@@ -12,7 +12,7 @@ class ShadowTaskGenerator:
     Uses an accessible LLM to create diverse task variations.
     """
     
-    def __init__(self, llm_generator: Optional[Any] = None):
+    def __init__(self, llm_generator= None):
         """
         Args:
             llm_generator: LLM to use for generating task variations
@@ -20,7 +20,7 @@ class ShadowTaskGenerator:
         """
         self.llm_generator = llm_generator or self._default_generator
     
-    def _default_generator(self, prompt: str) -> List[str]:
+    def _default_generator(self, prompt):
         """
         Default generator using simple heuristics.
         In practice, this would use an actual LLM API.
@@ -34,12 +34,7 @@ class ShadowTaskGenerator:
             "Assist me with this task"
         ]
     
-    def generate(
-        self,
-        target_task: str,
-        num_variations: int = 10,
-        task_type: str = "general"
-    ) -> List[ShadowTask]:
+    def generate(self, target_task, num_variations= 10, task_type= "general"):
         """
         Generate shadow task descriptions from a target task.
         
@@ -84,7 +79,7 @@ class ShadowTaskGenerator:
         
         return shadow_tasks
     
-    def _create_generation_prompt(self, target_task: str, num_variations: int) -> str:
+    def _create_generation_prompt(self, target_task, num_variations):
         """
         Create a prompt for the LLM to generate task variations.
         """
@@ -101,11 +96,7 @@ Provide only the task variations, one per line:"""
         
         return prompt
     
-    def generate_from_multiple_targets(
-        self,
-        target_tasks: List[str],
-        variations_per_task: int = 5
-    ) -> List[ShadowTask]:
+    def generate_from_multiple_targets(self, target_tasks, variations_per_task= 5):
         """
         Generate shadow tasks from multiple target tasks.
         
