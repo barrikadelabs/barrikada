@@ -157,6 +157,85 @@ It is designed for **agentic LLM systems**, not static chatbots.
 
 ---
 
+## Jentic Mini Integration (FastAPI Middleware)
+
+Barrikada now includes a middleware-ready adapter at `core/adapter.py`.
+
+Recommended policy for Jentic Mini integration:
+
+* Block only `block` verdicts
+* Allow `flag` verdicts but propagate warning metadata
+* Fail closed on detector errors/timeouts
+* Guard high-risk routes first (`/search`, `/execute`, `/tasks`)
+
+### Adapter Contract
+
+Use `BarrikadaAdapter.detect(text)` to return:
+
+```python
+{
+  "blocked": bool,
+  "flagged": bool,
+  "reason": str,
+  "confidence": float,
+  "metadata": {
+    "verdict": "allow|flag|block|error",
+    "decision_layer": "a|b|c|d|e|error",
+    "input_hash": str,
+    "latency_ms": float
+  }
+}
+```
+
+### FastAPI Middleware Example
+
+```python
+from fastapi import FastAPI
+
+from core.adapter import AdapterPolicy, BarrikadaAdapter
+from core.jentic_middleware import create_fastapi_guard, get_guard_readiness, warmup_guard_adapter
+
+app = FastAPI()
+adapter = BarrikadaAdapter(
+    policy=AdapterPolicy(
+        block_on_flag=False,
+        fail_closed=True,
+    )
+)
+
+
+@app.on_event("startup")
+async def warm_guard():
+    warmup_guard_adapter(adapter)
+
+
+middleware = create_fastapi_guard(
+    adapter=adapter,
+    guarded_routes=("/search", "/execute", "/tasks"),
+)
+
+
+@app.middleware("http")
+async def barrikada_guard(request, call_next):
+    return await middleware(request, call_next)
+
+
+@app.get("/guard/ready")
+def guard_ready():
+    return get_guard_readiness(adapter)
+```
+
+### Validation
+
+Run adapter and middleware tests:
+
+```bash
+pytest -q tests/test_adapter.py tests/test_jentic_middleware.py
+```
+
+`tests/test_jentic_middleware.py` validates guarded-route blocking, unguarded-route bypass, warning headers for flagged prompts, and startup readiness helpers.
+---
+
 ## Project Structure
 
 ```
@@ -257,6 +336,26 @@ git lfs pull --include='core/layer_c/outputs/releases/**,core/layer_d/outputs/re
 Use settings fields:
 - `layer_c_model_version`: `legacy`, `latest`, or explicit version.
 - `layer_d_model_version`: `legacy`, `latest`, or explicit version.
+
+## System Evaluation With Cost
+
+Run an offline end-to-end evaluation with quality, latency, and cost metrics:
+
+```bash
+python scripts/security_cost_eval.py \
+    --csv datasets/barrikada_test.csv \
+    --compute-cost-per-ms 0.000001 \
+    --layer-e-input-cost-per-1k-tokens 0.0005 \
+    --layer-e-output-cost-per-1k-tokens 0.0015 \
+    --sla-ms 50 \
+    --latency-penalty-per-ms-over-sla 0.00001 \
+    --false-positive-penalty 0.02 \
+    --false-negative-penalty 5.0
+```
+
+Outputs are written to `test_results/system_eval/`:
+- `system_eval_<timestamp>.csv` (row-level predictions, latency, token usage, cost components)
+- `system_eval_summary_<timestamp>.json` (accuracy/F1, latency percentiles, routing distribution, cost per 1000 requests)
 
 `legacy` keeps current pre-versioned paths for backward compatibility.
 
