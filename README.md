@@ -325,7 +325,7 @@ This writes:
 2. Pull model artifacts:
 
 ```bash
-git lfs pull --include='core/layer_c/outputs/releases/**,core/layer_d/outputs/releases/**'
+git lfs pull --include='core/layer_b/signatures/**,core/layer_c/outputs/classifier.joblib,core/layer_c/outputs/releases/**,core/layer_d/outputs/model/**,core/layer_d/outputs/releases/**'
 ```
 
 3. Verify each release has `manifest.json` and matching checksums.
