@@ -1,11 +1,18 @@
 from pathlib import Path
+import os
 import sys
 
 project_root = Path(__file__).parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-import streamlit as st
+# Reduce macOS runtime instability from tokenizer worker processes.
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+os.environ.setdefault("TQDM_DISABLE", "1")
+# If users explicitly force MPS, allow safe CPU fallback for unsupported ops.
+os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
+
+import streamlit as st # type: ignore
 
 from core.orchestrator import PIPipeline
 from core.settings import Settings
@@ -168,11 +175,47 @@ def inject_styles() -> None:
             }
 
             .verdict-card {
-                padding: 0.9rem 1rem;
+                padding: 0.95rem 1rem;
                 border-radius: 8px;
                 border: 1px solid var(--border);
                 background: #0f1217;
                 color: var(--text);
+                margin-bottom: 0.75rem;
+            }
+
+            .verdict-kicker {
+                font-family: 'IBM Plex Mono', monospace;
+                font-size: 10px;
+                letter-spacing: 0.12em;
+                color: var(--dim);
+                text-transform: uppercase;
+                margin: 0 0 0.35rem 0;
+            }
+
+            .verdict-title {
+                margin: 0;
+                font-family: 'IBM Plex Mono', monospace;
+                font-size: 1.05rem;
+                line-height: 1.3;
+                letter-spacing: 0.01em;
+            }
+
+            .verdict-meta {
+                margin-top: 0.6rem;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.45rem;
+            }
+
+            .verdict-chip {
+                border: 1px solid var(--border);
+                border-radius: 999px;
+                padding: 0.18rem 0.55rem;
+                font-family: 'IBM Plex Mono', monospace;
+                font-size: 10px;
+                line-height: 1.3;
+                color: var(--text);
+                background: var(--surface);
             }
 
             [data-testid="stMetricLabel"] *,
@@ -197,9 +240,13 @@ def inject_styles() -> None:
                 border-radius: 4px !important;
                 font-family: 'IBM Plex Mono', monospace !important;
                 font-size: 11px !important;
-                white-space: nowrap !important;
-                word-break: keep-all !important;
+                white-space: normal !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
                 line-height: 1.2 !important;
+                min-height: 2.75rem !important;
+                height: auto !important;
+                text-align: left !important;
             }
 
             .stButton button[kind="primary"] {
@@ -211,9 +258,13 @@ def inject_styles() -> None:
                 font-size: 12px !important;
                 font-weight: 600 !important;
                 letter-spacing: 0.05em !important;
-                white-space: nowrap !important;
-                word-break: keep-all !important;
+                white-space: normal !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
                 line-height: 1.2 !important;
+                min-height: 2.75rem !important;
+                height: auto !important;
+                text-align: left !important;
             }
 
             .stButton button[kind="primary"] *,
@@ -279,9 +330,13 @@ def render_summary(summary: dict) -> None:
     st.markdown(
         (
             "<div class='verdict-card'>"
-            f"<h2 style='margin:0;color:{color};'>Final verdict: {verdict.upper()}</h2>"
-            f"<p style='margin:0.4rem 0 0 0;'>Decided at Layer {decision_layer} | "
-            f"Confidence {confidence:.2f} | Total {total_ms:.1f} ms</p>"
+            "<div class='verdict-kicker'>// pipeline summary</div>"
+            f"<h2 class='verdict-title' style='color:{color};'>Final verdict: {verdict.upper()}</h2>"
+            "<div class='verdict-meta'>"
+            f"<span class='verdict-chip'>Layer {decision_layer}</span>"
+            f"<span class='verdict-chip'>Confidence {confidence:.2f}</span>"
+            f"<span class='verdict-chip'>Total {total_ms:.1f} ms</span>"
+            "</div>"
             "</div>"
         ),
         unsafe_allow_html=True,
@@ -445,12 +500,6 @@ def main() -> None:
 
     st.markdown("<div class='result-panel'><div class='panel-label'>// execution trace</div>", unsafe_allow_html=True)
     render_summary(protected)
-
-    st.markdown("<div class='trace-title'>// with barrikada (protected)</div>", unsafe_allow_html=True)
-    verdict = protected["final_verdict"].upper()
-    decision_layer = protected["decision_layer"]
-    confidence = float(protected["confidence_score"])
-    st.success(f"Verdict: {verdict} | Decided at Layer {decision_layer} | Confidence: {confidence:.2f}")
 
     st.markdown("<div class='trace-title'>// how it was detected</div>", unsafe_allow_html=True)
     for bullet in build_explanations(protected):

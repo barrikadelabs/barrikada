@@ -2,10 +2,13 @@ import time
 import hashlib
 import json
 import logging
+import os
+import platform
 from pathlib import Path
 
 import numpy as np
-import faiss
+import torch
+from sklearn.neighbors import NearestNeighbors
 from sentence_transformers import SentenceTransformer
 
 from core.settings import Settings
@@ -31,27 +34,59 @@ class SignatureEngine:
         else:
             model_name = self.settings.layer_b_embedding_model
             log.info("Loading base embedding model: %s", model_name)
-        self.model = SentenceTransformer(model_name)
+        device = self._select_device()
+        log.info("Layer B encoder device: %s", device)
+        self.model = SentenceTransformer(model_name, device=device)
+
+    def _select_device(self) -> str:
+        forced = os.getenv("BARRIKADA_EMBEDDING_DEVICE", "").strip().lower()
+        if forced in {"cpu", "cuda", "mps"}:
+            return forced
+
+        # MPS can be unstable under Streamlit reruns on some macOS setups.
+        if platform.system() == "Darwin":
+            return "cpu"
+
+        return "cuda" if torch.cuda.is_available() else "cpu"
+
+    def _select_index_backend(self) -> str:
+        forced = os.getenv("BARRIKADA_LAYER_B_INDEX_BACKEND", "").strip().lower()
+        if forced in {"faiss", "sklearn"}:
+            return forced
+
+        # faiss + torch can segfault on some macOS runtimes.
+        if platform.system() == "Darwin":
+            return "sklearn"
+
+        return "faiss"
 
     def _load_signatures(self):
         sig = Path(self.settings.layer_b_signatures_dir)
+        self.index_backend = self._select_index_backend()
 
         # Attack artefacts
         attack_idx_path = sig / "faiss_index.bin"
-        if not attack_idx_path.exists():
+        if self.index_backend == "faiss" and not attack_idx_path.exists():
             raise FileNotFoundError(
                 f"FAISS index not found at {attack_idx_path}. "
                 "Run scripts/extract_signature_patterns.py first."
             )
-        cpu_attack = faiss.read_index(str(attack_idx_path))
+        cpu_attack = None
+        if self.index_backend == "faiss":
+            import faiss
+            self._faiss = faiss
+            cpu_attack = faiss.read_index(str(attack_idx_path))
         self.attack_centroids = np.load(str(sig / "centroids.npy"))
         with open(sig / "metadata.json") as f:
             self.metadata = json.load(f)
 
         # Benign artefacts
         benign_idx_path = sig / "benign_faiss_index.bin"
-        if benign_idx_path.exists():
-            cpu_benign = faiss.read_index(str(benign_idx_path))
+        if self.index_backend == "faiss" and benign_idx_path.exists():
+            cpu_benign = self._faiss.read_index(str(benign_idx_path))
+            self.benign_centroids = np.load(str(sig / "benign_centroids.npy"))
+        elif self.index_backend == "sklearn" and (sig / "benign_centroids.npy").exists():
+            cpu_benign = None
             self.benign_centroids = np.load(str(sig / "benign_centroids.npy"))
         else:
             cpu_benign = None
@@ -66,31 +101,41 @@ class SignatureEngine:
         else:
             self.radii = {}
 
-        # Move to GPU if available
-        n_gpus = faiss.get_num_gpus()
-        if n_gpus > 0:
-            res = faiss.StandardGpuResources()
-            self.attack_index = faiss.index_cpu_to_gpu(res, 0, cpu_attack)
-            log.info("Attack FAISS index → GPU 0")
-            if cpu_benign is not None:
-                self.benign_index = faiss.index_cpu_to_gpu(
-                    faiss.StandardGpuResources(), 0, cpu_benign,
-                )
-                log.info("Benign FAISS index → GPU 0")
-            else:
-                self.benign_index = None
-        else:
+        if self.index_backend == "faiss":
             self.attack_index = cpu_attack
             self.benign_index = cpu_benign
+            log.info("Layer B index backend: faiss")
+        else:
+            self.attack_index = NearestNeighbors(metric="cosine", algorithm="brute")
+            self.attack_index.fit(self.attack_centroids)
+            if self.benign_centroids is not None:
+                self.benign_index = NearestNeighbors(metric="cosine", algorithm="brute")
+                self.benign_index.fit(self.benign_centroids)
+            else:
+                self.benign_index = None
+            log.info("Layer B index backend: sklearn")
 
         n_attack = self.attack_centroids.shape[0]
         n_benign = self.benign_centroids.shape[0] if self.benign_centroids is not None else 0
         log.info("Loaded %d attack + %d benign centroids (dim=%d)",
                  n_attack, n_benign, self.attack_centroids.shape[1])
 
+    def _search(self, index, query, k):
+        if self.index_backend == "faiss":
+            return index.search(query, k)
+
+        distances, ids = index.kneighbors(query, n_neighbors=k)
+        scores = 1.0 - distances
+        return scores.astype(np.float32), ids.astype(np.int64)
+
     # embedding helper
     def _embed(self, text):
-        vec = self.model.encode([text], normalize_embeddings=True)
+        vec = self.model.encode(
+            [text],
+            normalize_embeddings=True,
+            show_progress_bar=False,
+            convert_to_numpy=True,
+        )
         return vec.astype(np.float32)
 
     # main detection method
@@ -103,7 +148,7 @@ class SignatureEngine:
 
         # Attack similarity (top-k mean) 
         k_attack = min(top_k, self.attack_centroids.shape[0])
-        atk_scores, atk_ids = self.attack_index.search(query, k_attack)
+        atk_scores, atk_ids = self._search(self.attack_index, query, k_attack)
         atk_scores = atk_scores[0]  # shape (k_attack,)
         atk_ids = atk_ids[0]
         attack_sim = float(np.mean(atk_scores[:k_attack]))
@@ -111,7 +156,7 @@ class SignatureEngine:
         # Benign similarity (top-k mean) 
         if self.benign_index is not None and self.benign_centroids is not None:
             k_benign = min(top_k, self.benign_centroids.shape[0])
-            ben_scores, _ = self.benign_index.search(query, k_benign)
+            ben_scores, _ = self._search(self.benign_index, query, k_benign)
             ben_scores = ben_scores[0]
             benign_sim = float(np.mean(ben_scores[:k_benign]))
         else:
@@ -120,7 +165,7 @@ class SignatureEngine:
         # Contrastive score (attack sim - benign sim) 
         contrastive = attack_sim - benign_sim
 
-        # Build match objects (informational) 
+        # Build match objects
         matches = []
 
         cluster_meta = {c["cluster_id"]: c for c in self.metadata.get("clusters", [])}

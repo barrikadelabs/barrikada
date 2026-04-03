@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import time
 from typing import Literal
 
@@ -8,9 +9,11 @@ from models.PipelineResult import PipelineResult
 from models.verdicts import DecisionLayer, FinalVerdict
 
 
+log = logging.getLogger(__name__)
+
+
 class PIPipeline:
     def __init__(self):
-
         from core.layer_a.pipeline import analyze_text
         from core.layer_b.signature_engine import SignatureEngine
         from core.layer_c.classifier import Classifier
@@ -95,7 +98,7 @@ class PIPipeline:
             )
 
         #Layer B
-        layer_b_result = self.layer_b_engine.detect(analysis_text)
+        layer_b_result = self.layer_b_engine.detect(analysis_text) #type: ignore
 
         # MALICIOUS signatures => block immediately
         if layer_b_result.verdict == "block":
@@ -123,6 +126,17 @@ class PIPipeline:
     
         #Layer D
         layer_d_result = self.layer_d_classifier.predict(analysis_text)
+
+        if layer_d_result.verdict == "block" or layer_d_result.verdict == "allow":
+            return self._create_result(
+                input_hash, start_time, layer_a_result,
+                layer_b_result=layer_b_result,
+                layer_c_result=layer_c_result,
+                layer_d_result=layer_d_result,
+                final_verdict=FinalVerdict(layer_d_result.verdict),
+                decision_layer=DecisionLayer.LAYER_D,
+                confidence_score=layer_d_result.confidence_score,
+            )
 
         #Layer E
         layer_e_start = time.time()
