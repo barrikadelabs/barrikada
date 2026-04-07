@@ -1,8 +1,10 @@
 import time
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, PreTrainedTokenizerFast
 
 from models.LayerDResult import LayerDResult
 
@@ -20,10 +22,42 @@ class Thresholds:
 
 
 class LayerDClassifier:
+    @staticmethod
+    def _load_tokenizer(model_dir):
+        try:
+            return AutoTokenizer.from_pretrained(model_dir)
+        except ValueError as exc:
+            if "Tokenizer class" not in str(exc):
+                raise
+
+            tokenizer_json = Path(model_dir) / "tokenizer.json"
+            if not tokenizer_json.exists():
+                raise
+
+            # Some local model exports carry unsupported tokenizer_class metadata.
+            tokenizer = PreTrainedTokenizerFast(tokenizer_file=str(tokenizer_json))
+            special_tokens_map = Path(model_dir) / "special_tokens_map.json"
+            if special_tokens_map.exists():
+                with special_tokens_map.open("r", encoding="utf-8") as handle:
+                    token_map = json.load(handle)
+                for key, value in token_map.items():
+                    token_value = value.get("content") if isinstance(value, dict) else value
+                    if isinstance(token_value, str):
+                        setattr(tokenizer, key, token_value)
+
+            if tokenizer.pad_token is None:
+                if tokenizer.eos_token is not None:
+                    tokenizer.pad_token = tokenizer.eos_token
+                elif tokenizer.unk_token is not None:
+                    tokenizer.pad_token = tokenizer.unk_token
+                else:
+                    tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+            return tokenizer
+
     def __init__(self, model_dir, low=0.05, high=0.95, max_length=512, ):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.max_length = max_length
-        self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
+        self.tokenizer = self._load_tokenizer(model_dir)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_dir)
         self.model.to(self.device)
         self.model.eval()

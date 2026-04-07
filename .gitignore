@@ -30,3 +30,7 @@ signatures
 
 # Local test cache
 .pytest_cache/
+
+/barrikada.egg-info
+/dist
+/artifact-manifest.json

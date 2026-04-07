@@ -1,5 +1,7 @@
-from pydantic import BaseModel
+import os
 from pathlib import Path
+
+from pydantic import BaseModel
 
 from core.model_registry import read_latest_pointer
 
@@ -8,8 +10,78 @@ class Settings(BaseModel):
     app_name: str = "Barrikada"
     debug_mode: bool = False
 
-    # Use absolute paths based on project root
-    _project_root = Path(__file__).parent.parent
+    # Package root works for both editable and wheel installs.
+    _package_root = Path(__file__).resolve().parent
+    _repo_root = _package_root.parent
+    _user_state_root = Path.home() / ".barrikada"
+
+    @staticmethod
+    def _env_path(env_var):
+        value = os.getenv(env_var)
+        if not value:
+            return None
+        return Path(value).expanduser().resolve()
+
+    def _path_with_override(self, env_var, default_path):
+        override = self._env_path(env_var)
+        return str(override if override is not None else default_path)
+
+    @staticmethod
+    def _ensure_directory(path):
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def _output_dir_with_override(self, env_var, default_path):
+        path = self._env_path(env_var) or default_path
+        return str(self._ensure_directory(path))
+
+    def _output_file_with_override(self, env_var, default_path):
+        path = self._env_path(env_var) or default_path
+        self._ensure_directory(path.parent)
+        return str(path)
+
+    def _existing_path_with_override(
+        self,
+        env_var: str,
+        candidates: list[Path],
+        purpose: str,
+    ):
+        override = self._env_path(env_var)
+        if override is not None:
+            if override.exists():
+                return str(override)
+            raise FileNotFoundError(
+                f"{purpose} override path from {env_var} does not exist: {override}"
+            )
+
+        for candidate in candidates:
+            if candidate.exists():
+                return str(candidate)
+
+        searched = "\n".join(str(path) for path in candidates)
+        raise FileNotFoundError(
+            f"Could not locate {purpose}. Searched:\n{searched}\n"
+            f"Set {env_var} to an explicit path if needed."
+        )
+
+    def _default_results_dir(self) -> Path:
+        repo_results = self._repo_root / "test_results"
+        if repo_results.exists():
+            return repo_results
+        return self._user_state_root / "test_results"
+
+    def _default_layer_e_output_dir(self) -> Path:
+        repo_outputs = self._package_root / "layer_e" / "outputs"
+        if repo_outputs.exists() and os.access(repo_outputs, os.W_OK):
+            return repo_outputs
+        return self._user_state_root / "layer_e" / "outputs"
+
+    @property
+    def artifacts_root_dir(self) -> str:
+        return self._path_with_override(
+            "BARRIKADA_ARTIFACTS_DIR",
+            self._user_state_root / "artifacts",
+        )
 
     ### Layer B (embedding-based contrastive signature engine)
     layer_b_embedding_model: str = "BAAI/bge-small-en-v1.5"
@@ -52,7 +124,14 @@ class Settings(BaseModel):
 
     @property
     def layer_b_signatures_dir(self):
-        return str(self._project_root / "core" / "layer_b" / "signatures" / "embeddings")
+        return self._existing_path_with_override(
+            "BARRIKADA_LAYER_B_SIGNATURES_DIR",
+            [
+                Path(self.artifacts_root_dir) / "layer_b" / "signatures" / "embeddings",
+                self._package_root / "layer_b" / "signatures" / "embeddings",
+            ],
+            "Layer B signatures directory",
+        )
     
 
     ### Layer C
@@ -101,11 +180,17 @@ class Settings(BaseModel):
 
     @property
     def dataset_path(self):
-        return str(self._project_root / "datasets" / "barrikada.csv")
+        override = self._env_path("BARRIKADA_DATASET_PATH")
+        if override is not None:
+            return str(override)
+        return str(self._repo_root / "datasets" / "barrikada.csv")
 
     @property
     def layer_c_release_dir(self):
-        return str(self._project_root / "core" / "layer_c" / "outputs" / "releases")
+        return self._path_with_override(
+            "BARRIKADA_LAYER_C_RELEASE_DIR",
+            self._package_root / "layer_c" / "outputs" / "releases",
+        )
 
     def _resolve_release_version(self, release_dir, version):
         if version == "legacy":
@@ -116,13 +201,20 @@ class Settings(BaseModel):
     
     @property
     def model_path(self):
-        legacy = self._project_root / "core" / "layer_c" / "outputs" / "classifier.joblib"
+        legacy = self._package_root / "layer_c" / "outputs" / "classifier.joblib"
         resolved = self._resolve_release_version(Path(self.layer_c_release_dir), self.layer_c_model_version)
+        candidates = [
+            Path(self.artifacts_root_dir) / "layer_c" / "outputs" / "classifier.joblib",
+            legacy,
+        ]
         if resolved:
             candidate = Path(self.layer_c_release_dir) / resolved / "classifier.joblib"
-            if candidate.exists():
-                return str(candidate)
-        return str(legacy)
+            candidates.insert(0, candidate)
+        return self._existing_path_with_override(
+            "BARRIKADA_LAYER_C_MODEL_PATH",
+            candidates,
+            "Layer C classifier model",
+        )
 
     ### Layer D (ModernBERT classifier)
     layer_d_model_id: str = "answerdotai/ModernBERT-large"
@@ -163,21 +255,34 @@ class Settings(BaseModel):
 
     @property
     def layer_d_release_dir(self):
-        return str(self._project_root / "core" / "layer_d" / "outputs" / "releases")
+        return self._path_with_override(
+            "BARRIKADA_LAYER_D_RELEASE_DIR",
+            self._package_root / "layer_d" / "outputs" / "releases",
+        )
 
     @property
     def layer_d_output_dir(self):
-        legacy = self._project_root / "core" / "layer_d" / "outputs" / "model"
+        legacy = self._package_root / "layer_d" / "outputs" / "model"
         resolved = self._resolve_release_version(Path(self.layer_d_release_dir), self.layer_d_model_version)
+        candidates = [
+            Path(self.artifacts_root_dir) / "layer_d" / "outputs" / "model",
+            legacy,
+        ]
         if resolved:
             candidate = Path(self.layer_d_release_dir) / resolved / "model"
-            if candidate.exists():
-                return str(candidate)
-        return str(legacy)
+            candidates.insert(0, candidate)
+        return self._existing_path_with_override(
+            "BARRIKADA_LAYER_D_MODEL_DIR",
+            candidates,
+            "Layer D model directory",
+        )
 
     @property
     def layer_d_report_path(self):
-        return str(self._project_root / "test_results" / "layer_d_eval_latest.json")
+        return self._output_file_with_override(
+            "BARRIKADA_LAYER_D_REPORT_PATH",
+            self._default_results_dir() / "layer_d_eval_latest.json",
+        )
 
     ### Layer E (Qwen3.5 LLM judge)
     layer_e_ollama_base_url: str = "http://localhost:11434"
@@ -208,17 +313,23 @@ class Settings(BaseModel):
 
     @property
     def layer_e_output_dir(self):
-        return str(self._project_root / "core" / "layer_e" / "outputs")
+        return self._output_dir_with_override(
+            "BARRIKADA_LAYER_E_OUTPUT_DIR",
+            self._default_layer_e_output_dir(),
+        )
 
     @property
     def layer_e_teacher_output_dir(self):
-        return str(self._project_root / "core" / "layer_e" / "outputs" / "teacher")
+        return str(self._ensure_directory(Path(self.layer_e_output_dir) / "teacher"))
 
     @property
     def layer_e_teacher_report_path(self):
-        return str(self._project_root / "test_results" / "layer_e_teacher_eval_latest.json")
+        return self._output_file_with_override(
+            "BARRIKADA_LAYER_E_TEACHER_REPORT_PATH",
+            self._default_results_dir() / "layer_e_teacher_eval_latest.json",
+        )
 
     @property
     def layer_e_teacher_labels_path(self):
-        return str(self._project_root / "core" / "layer_e" / "outputs" / "teacher" / "teacher_labels.csv")
+        return str(Path(self.layer_e_teacher_output_dir) / "teacher_labels.csv")
 
