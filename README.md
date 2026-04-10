@@ -126,22 +126,6 @@ Typical deployment policy:
 - Block `block` verdicts
 - Allow `flag` verdicts with warning metadata
 - Fail closed on detector errors/timeouts
-- Guard high-risk routes first (`/search`, `/execute`, `/tasks`)
-
-## External artifact model strategy
-
-Trained model artifacts are intentionally not stored in git history.
-
-Fetch runtime artifacts with:
-
-```bash
-barrikada fetch-artifacts --base-url <BARRIKADA_ARTIFACT_BASE_URL>
-```
-
-See:
-
-- docs/ARTIFACTS.md
-- examples/README.md
 
 ## Repo structure
 
@@ -149,13 +133,6 @@ See:
 - models: result and schema objects
 - examples: minimal runnable examples
 - docs: lightweight operational docs
-
-## Roadmap
-
-- Better packaged install flow with automatic artifact bootstrap
-- More production integration examples
-- CI and release automation
-- Expanded threat-signature coverage and evaluation reports
 
 ## Contributing
 
