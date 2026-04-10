@@ -42,7 +42,6 @@ core = [
   "layer_b/signatures/extracted/*.yar",
   "layer_b/signatures/embeddings/metadata.json",
   "layer_b/signatures/embeddings/cluster_radii.json",
-  "layer_c/outputs/classifier.joblib",
   "layer_c/outputs/tf_idf_logreg.metadata.json",
   "layer_d/outputs/releases/**/*"
 ]

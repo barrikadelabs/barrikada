@@ -3,13 +3,11 @@ include LICENSE
 include core/layer_b/signatures/extracted/*.yar
 include core/layer_b/signatures/embeddings/metadata.json
 include core/layer_b/signatures/embeddings/cluster_radii.json
-include core/layer_c/outputs/classifier.joblib
 include core/layer_c/outputs/tf_idf_logreg.metadata.json
 recursive-include core/layer_d/outputs/releases *
 prune core/layer_c/outputs/.cache
 prune core/layer_c/outputs/releases
 exclude core/layer_c/outputs/*.joblib
-include core/layer_c/outputs/classifier.joblib
 exclude core/layer_c/outputs/*.json
 include core/layer_c/outputs/tf_idf_logreg.metadata.json
 prune core/layer_b/signatures/embeddings/prompt_encoder

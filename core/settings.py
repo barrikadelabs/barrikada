@@ -61,7 +61,8 @@ class Settings(BaseModel):
         searched = "\n".join(str(path) for path in candidates)
         raise FileNotFoundError(
             f"Could not locate {purpose}. Searched:\n{searched}\n"
-            f"Set {env_var} to an explicit path if needed."
+            f"Set {env_var} to an explicit path if needed. "
+            "If artifacts are externalized, run 'barrikada fetch-artifacts --base-url <url>'."
         )
 
     def _default_results_dir(self) -> Path:

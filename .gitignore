@@ -1,24 +1,25 @@
-/test_results
+/build/
+/dist/
+/barrikada.egg-info/
+/artifact-manifest.json
+
+/test_results/
+
+# Externalized runtime artifacts (downloaded via barrikada fetch-artifacts)
+/core/layer_b/signatures/embeddings/*.bin
+/core/layer_b/signatures/embeddings/*.npy
+/core/layer_b/signatures/embeddings/prompt_encoder/
+/core/layer_b/signatures/embeddings/signature_encoder/
+/core/layer_c/outputs/*.joblib
+/core/layer_c/outputs/releases/**/classifier.joblib
+/core/layer_d/outputs/model/
+/core/layer_d/outputs/releases/**/model/
+
 __pycache__
 venv
 .coverage
 .vscode
-
-outputs
-signatures
 .cache
-
-# Keep selected model/signature artifacts versioned (with LFS)
-!core/layer_b/signatures/
-!core/layer_b/signatures/**
-!core/layer_c/outputs/
-!core/layer_c/outputs/*.joblib
-!core/layer_c/outputs/releases/
-!core/layer_c/outputs/releases/**
-!core/layer_d/outputs/model/
-!core/layer_d/outputs/model/**
-!core/layer_d/outputs/releases/
-!core/layer_d/outputs/releases/**
 
 # macOS filesystem metadata
 .DS_Store
@@ -30,7 +31,3 @@ signatures
 
 # Local test cache
 .pytest_cache/
-
-/barrikada.egg-info
-/dist
-/artifact-manifest.json
