@@ -7,13 +7,18 @@ Runtime security for AI agents. Detect prompt injection and unsafe behavior in r
 
 ## Why this matters
 
-LLM apps are vulnerable to prompt injection, data exfiltration attempts, and unsafe tool usage.
+As LLM apps evolve into tool-using agents, the attack surface expands fast.
 
-Barrikada helps detect and route these attacks at runtime through a fast, tiered security pipeline.
+Prompt injection attacks can:
+
+- Override system instructions
+- Induce unsafe tool usage
+- Trigger data exfiltration flows
+- Escalate privileges indirectly
+
+Barrikada helps detect and route these attacks at runtime through a cost-aware, tiered defense pipeline.
 
 ## 30-second quick start
-
-Install dependencies and run detection.
 
 ```bash
 pip install -r requirements.txt
@@ -40,13 +45,70 @@ print(result.final_verdict)
 }
 ```
 
+## Core idea
+
+Barrikada does not treat prompt-injection defense as one binary classifier.
+It applies a staged pipeline so most traffic exits early at low cost and only uncertain traffic escalates.
+
+- Layer A: preprocessing and normalization
+- Layer B: signature and embedding-based screening
+- Layer C: lightweight ML classifier
+- Layer D: optional higher-cost classifier path
+- Layer E: LLM judge fallback
+
+## Architecture overview
+
+![Barrikada Pipeline Architecture](pipeline.png)
+
 ## Features
 
 - Prompt-injection detection across multiple layers
 - Runtime routing with low-latency early exits
-- Lightweight local integration path for agent backends
-- External artifact fetch workflow for slim packaging
 - Explainable per-layer decision metadata
+- Lightweight integration path for agent backends
+- External artifact fetch workflow for slim packaging
+
+## Performance
+
+Evaluated on 2,176 prompts (1,466 benign, 710 malicious):
+
+| Metric | Value |
+|--------|-------|
+| Overall Accuracy | 96.28% |
+| Benign Accuracy | 96.59% |
+| Malicious Accuracy | 95.63% |
+| Avg Latency | 2.69ms |
+| Layer B Resolution Rate | 43.0% |
+| Layer B Accuracy | 97.97% |
+| Layer C Accuracy | 95.00% |
+
+Latency breakdown:
+
+| Layer | Average Time |
+|-------|--------------|
+| Layer A (Preprocessing) | 2.32ms |
+| Layer B (Signatures) | 0.08ms |
+| Layer C (ML Classifier) | 0.50ms |
+| Total Pipeline | 2.69ms |
+
+## Why tiered beats LLM-only moderation
+
+| Approach | Cost | Latency | Accuracy | Governance |
+|----------|------|---------|----------|------------|
+| Regex-only | Low | Low | Poor | Weak |
+| LLM-only | High | ~2.5s | Good | Moderate |
+| Barrikada (Tiered) | Optimized | ~2.7ms | 96%+ | Strong |
+
+## Threat model
+
+Barrikada is built for agentic systems and focuses on:
+
+- Instruction override and jailbreak prompts
+- System prompt extraction attempts
+- Tool misuse induction
+- Encoding-based obfuscation (Base64, hex, URL/Unicode)
+- Homoglyph and invisible-character attacks
+- Indirect injection via retrieved content
 
 ## Use cases
 
@@ -55,17 +117,16 @@ print(result.final_verdict)
 - Internal assistants with sensitive data access
 - API gateways for prompt screening
 
-## Architecture
+## Integration
 
-Barrikada uses a tiered pipeline:
+Barrikada includes middleware-friendly integration primitives in the core package.
 
-- Layer A: preprocessing and normalization
-- Layer B: signature and embedding-based screening
-- Layer C: ML classifier for ambiguous prompts
-- Layer D: optional higher-cost classifier path
-- Layer E: LLM judge fallback
+Typical deployment policy:
 
-Most benign traffic exits early. Suspicious traffic escalates to higher-signal layers.
+- Block `block` verdicts
+- Allow `flag` verdicts with warning metadata
+- Fail closed on detector errors/timeouts
+- Guard high-risk routes first (`/search`, `/execute`, `/tasks`)
 
 ## External artifact model strategy
 
@@ -77,7 +138,7 @@ Fetch runtime artifacts with:
 barrikada fetch-artifacts --base-url <BARRIKADA_ARTIFACT_BASE_URL>
 ```
 
-See docs:
+See:
 
 - docs/ARTIFACTS.md
 - examples/README.md
@@ -93,7 +154,7 @@ See docs:
 
 - Better packaged install flow with automatic artifact bootstrap
 - More production integration examples
-- CI pipeline and release automation
+- CI and release automation
 - Expanded threat-signature coverage and evaluation reports
 
 ## Contributing
