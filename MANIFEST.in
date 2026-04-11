@@ -1,6 +1,5 @@
 include README.md
 include LICENSE
-include core/layer_b/signatures/extracted/*.yar
 include core/layer_b/signatures/embeddings/metadata.json
 include core/layer_b/signatures/embeddings/cluster_radii.json
 include core/layer_c/outputs/tf_idf_logreg.metadata.json

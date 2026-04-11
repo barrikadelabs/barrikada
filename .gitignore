@@ -6,6 +6,7 @@
 /test_results/
 
 # Externalized runtime artifacts (downloaded via barrikada fetch-artifacts)
+/core/layer_b/signatures/extracted/
 /core/layer_b/signatures/embeddings/*.bin
 /core/layer_b/signatures/embeddings/*.npy
 /core/layer_b/signatures/embeddings/prompt_encoder/

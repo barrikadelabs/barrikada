@@ -5,7 +5,6 @@ import pytest
 
 
 REQUIRED_WHEEL_PATHS = [
-    "core/layer_b/signatures/extracted/safe_allow_signatures.yar",
     "core/layer_b/signatures/embeddings/metadata.json",
     "core/layer_c/outputs/tf_idf_logreg.metadata.json",
 ]

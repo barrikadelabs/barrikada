@@ -39,7 +39,6 @@ dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools.package-data]
 core = [
-  "layer_b/signatures/extracted/*.yar",
   "layer_b/signatures/embeddings/metadata.json",
   "layer_b/signatures/embeddings/cluster_radii.json",
   "layer_c/outputs/tf_idf_logreg.metadata.json",

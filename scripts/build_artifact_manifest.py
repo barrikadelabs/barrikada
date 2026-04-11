@@ -16,7 +16,6 @@ DEFAULT_FILES = [
 ]
 
 DEFAULT_GLOBS = [
-    "layer_b/signatures/extracted/**/*",
     "layer_b/signatures/embeddings/prompt_encoder/**/*",
     "layer_b/signatures/embeddings/signature_encoder/**/*",
     "layer_c/outputs/releases/**/classifier.joblib",
