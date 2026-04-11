@@ -1,6 +1,6 @@
 # Barrikada
 
-Runtime security for AI agents. Detect prompt injection and unsafe behavior in real time.
+Barrikada is the open-source core for Barrikade, the runtime security layer for autonomous AI agents. Detect prompt injection and unsafe behavior in real time.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
