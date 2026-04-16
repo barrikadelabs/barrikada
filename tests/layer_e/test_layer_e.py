@@ -99,12 +99,14 @@ def evaluate_judge(judge, texts, labels):
     print(f"Malicious escape rate (allowed malicious / all malicious): {malicious_escape_rate:.4f}  ({fn}/{n_mal})")
     print(f"Safe block rate       (blocked safe / all safe):           {safe_block_rate:.4f}  ({safe_block}/{n_safe})")
     print(f"Fallback block count: {fallback_blocks}/{total}")
+    return {"total": total}
 
 
 def test_layer_e():
     test_texts, true_labels = load_test_data("datasets/barrikada_test.csv")
     judge = build_judge()
-    evaluate_judge(judge, test_texts, true_labels)
+    metrics = evaluate_judge(judge, test_texts, true_labels)
+    assert metrics["total"] == len(test_texts)
 
 
 if __name__ == "__main__":

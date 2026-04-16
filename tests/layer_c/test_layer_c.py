@@ -120,13 +120,18 @@ def evaluate_classifier(classifier, texts, labels):
     print(f"Safe block rate       (blocked safe / all safe):           {safe_block_rate:.4f}  ({safe_block}/{n_safe})")
     print(f"Safe flag rate        (flagged safe / all safe):           {safe_flag_rate:.4f}  ({safe_flag}/{n_safe})")
     print(f"Overall flag rate     (flagged / total):                   {flag_rate:.4f}  ({tot_flag}/{total})")
+    return {
+        "total": total,
+        "n_safe": n_safe,
+        "n_mal": n_mal,
+        "tot_allow": tot_allow,
+        "tot_flag": tot_flag,
+        "tot_block": tot_block,
+    }
 
 
 def test_layer_c():
     test_texts, true_labels = load_test_data("datasets/barrikada_test.csv")
-    
-    # Filter through Layer A and B
-    # flagged_texts, flagged_labels = filter_through_layer_b(test_texts, true_labels)
     
     # Use manual thresholds from settings.
     low, high = load_thresholds()
@@ -137,8 +142,10 @@ def test_layer_c():
         high=high,
     )
     
-    # Evaluate with trained thresholds
-    evaluate_classifier(classifier, test_texts, true_labels)
+    # Evaluate with trained thresholds on the full test set
+    metrics = evaluate_classifier(classifier, test_texts, true_labels)
+    assert metrics["total"] == len(test_texts)
+    assert metrics["total"] > 0
 
 
 if __name__ == "__main__":

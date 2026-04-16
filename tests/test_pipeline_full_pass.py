@@ -1,0 +1,62 @@
+import json
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+
+from core.orchestrator import PIPipeline
+
+
+def run_full_pipeline_pass():
+    df = pd.read_csv("datasets/barrikada_test.csv")
+    pipeline = PIPipeline()
+    results = []
+
+    for idx, row in df.iterrows():
+        if idx % 200 == 0: #type: ignore
+            print(f"Processed {idx}/{len(df)}...")
+        outcome = pipeline.detect(row["text"])
+        results.append(
+            {
+                "text": row["text"],
+                "true_label": int(row["label"]),
+                "final_verdict": outcome.final_verdict.value,
+                "decision_layer": outcome.decision_layer.value,
+                "confidence_score": float(outcome.confidence_score),
+                "total_processing_time_ms": float(outcome.total_processing_time_ms),
+                "layer_a_time_ms": float(outcome.layer_a_time_ms),
+                "layer_b_time_ms": outcome.layer_b_time_ms,
+                "layer_c_time_ms": outcome.layer_c_time_ms,
+                "layer_d_time_ms": outcome.layer_d_time_ms,
+                "layer_e_time_ms": outcome.layer_e_time_ms,
+            }
+        )
+
+    results_df = pd.DataFrame(results)
+    result_dir = Path("test_results")
+    result_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    csv_path = result_dir / f"pipeline_full_pass_{ts}.csv"
+    summary_path = result_dir / f"pipeline_full_pass_summary_{ts}.json"
+    results_df.to_csv(csv_path, index=False)
+
+    correct = (
+        ((results_df["true_label"] == 0) & (results_df["final_verdict"] == "allow"))
+        | ((results_df["true_label"] == 1) & (results_df["final_verdict"].isin(["block", "flag"])))
+    ).sum()
+    summary = {
+        "total_samples": int(len(results_df)),
+        "correct_predictions": int(correct),
+        "accuracy_percent": float((correct / len(results_df)) * 100 if len(results_df) else 0.0),
+        "avg_total_time_ms": float(results_df["total_processing_time_ms"].mean()),
+        "decision_layer_distribution": results_df["decision_layer"].value_counts().to_dict(),
+        "final_verdict_distribution": results_df["final_verdict"].value_counts().to_dict(),
+        "results_csv": str(csv_path),
+    }
+    summary_path.write_text(json.dumps(summary, indent=2))
+    print(f"Saved results to {csv_path}")
+    print(f"Saved summary to {summary_path}")
+    return summary
+
+if __name__ == "__main__":
+    run_full_pipeline_pass()

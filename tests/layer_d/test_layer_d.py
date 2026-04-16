@@ -101,6 +101,7 @@ def evaluate_classifier(classifier, texts, labels):
     print(f"Safe block rate       (blocked safe / all safe):           {safe_block_rate:.4f}  ({safe_block}/{n_safe})")
     print(f"Safe flag rate        (flagged safe / all safe):           {safe_flag_rate:.4f}  ({safe_flag}/{n_safe})")
     print(f"Overall flag rate     (flagged / total):                   {flag_rate:.4f}  ({tot_flag}/{total})")
+    return {"total": total}
 
 
 def test_layer_d():
@@ -109,7 +110,8 @@ def test_layer_d():
     low, high, model_dir = load_trained_thresholds_and_model_dir()
     classifier = LayerDClassifier(model_dir=model_dir, low=low, high=high)
 
-    evaluate_classifier(classifier, test_texts, true_labels)
+    metrics = evaluate_classifier(classifier, test_texts, true_labels)
+    assert metrics["total"] == len(test_texts)
 
 
 if __name__ == "__main__":
