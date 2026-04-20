@@ -13,7 +13,7 @@ def run_full_pipeline_pass():
     results = []
 
     for idx, row in df.iterrows():
-        if idx % 200 == 0: #type: ignore
+        if idx % 200 == 0: #type: ignore 
             print(f"Processed {idx}/{len(df)}...")
         outcome = pipeline.detect(row["text"])
         results.append(

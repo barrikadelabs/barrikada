@@ -12,8 +12,13 @@ from core.layer_e.llm_judge import LLMJudge
 from core.settings import Settings
 
 
+TEST_PROMPT_LIMIT = 2000
+
+
 def load_test_data(csv_path):
     df = pd.read_csv(csv_path)
+    if TEST_PROMPT_LIMIT > 0:
+        df = df.head(TEST_PROMPT_LIMIT)
     return df["text"].tolist(), df["label"].tolist()
 
 
