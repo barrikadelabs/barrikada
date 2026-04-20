@@ -3,13 +3,8 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from core.model_registry import read_latest_pointer
-
 
 class Settings(BaseModel):
-    app_name: str = "Barrikada"
-    debug_mode: bool = False
-
     # Package root works for both editable and wheel installs.
     _package_root = Path(__file__).resolve().parent
     _repo_root = _package_root.parent
@@ -116,12 +111,10 @@ class Settings(BaseModel):
     # Dual-encoder contrastive training hyperparameters
     layer_b_dual_encoder_temperature: float = 0.05
     layer_b_dual_encoder_epochs: int = 3
-    layer_b_dual_encoder_batch_size: int = 8       # small batch, use grad_accum to compensate
+    layer_b_dual_encoder_batch_size: int = 8
     layer_b_dual_encoder_lr: float = 2e-5
     layer_b_dual_encoder_hard_negatives: int = 3
     layer_b_dual_encoder_max_samples: int = 50000
-    layer_b_dual_encoder_grad_accum_steps: int = 8  # effective batch = 8 * 8 = 64
-    layer_b_dual_encoder_use_amp: bool = True       # mixed precision for memory savings
 
     @property
     def layer_b_signatures_dir(self):
@@ -193,24 +186,14 @@ class Settings(BaseModel):
             self._package_root / "layer_c" / "outputs" / "releases",
         )
 
-    def _resolve_release_version(self, release_dir, version):
-        if version == "legacy":
-            return None
-        if version == "latest":
-            return read_latest_pointer(release_dir)
-        return version
     
     @property
     def model_path(self):
         legacy = self._package_root / "layer_c" / "outputs" / "classifier.joblib"
-        resolved = self._resolve_release_version(Path(self.layer_c_release_dir), self.layer_c_model_version)
         candidates = [
             Path(self.artifacts_root_dir) / "layer_c" / "outputs" / "classifier.joblib",
             legacy,
         ]
-        if resolved:
-            candidate = Path(self.layer_c_release_dir) / resolved / "classifier.joblib"
-            candidates.insert(0, candidate)
         return self._existing_path_with_override(
             "BARRIKADA_LAYER_C_MODEL_PATH",
             candidates,
@@ -264,14 +247,10 @@ class Settings(BaseModel):
     @property
     def layer_d_output_dir(self):
         legacy = self._package_root / "layer_d" / "outputs" / "model"
-        resolved = self._resolve_release_version(Path(self.layer_d_release_dir), self.layer_d_model_version)
         candidates = [
             Path(self.artifacts_root_dir) / "layer_d" / "outputs" / "model",
             legacy,
         ]
-        if resolved:
-            candidate = Path(self.layer_d_release_dir) / resolved / "model"
-            candidates.insert(0, candidate)
         return self._existing_path_with_override(
             "BARRIKADA_LAYER_D_MODEL_DIR",
             candidates,
@@ -291,7 +270,6 @@ class Settings(BaseModel):
     layer_e_runtime_base_model: str = "qwen3.5:2b"
     layer_e_runtime_finetuned_model: str = "qwen3.5:4b"
     layer_e_runtime_model: str = "qwen3.5:2b"
-    layer_e_teacher_model: str = "qwen3.5:4b"
     layer_e_temperature: float = 0.0
     layer_e_timeout_s: float = 30.0
     layer_e_max_retries: int = 2
@@ -329,8 +307,4 @@ class Settings(BaseModel):
             "BARRIKADA_LAYER_E_TEACHER_REPORT_PATH",
             self._default_results_dir() / "layer_e_teacher_eval_latest.json",
         )
-
-    @property
-    def layer_e_teacher_labels_path(self):
-        return str(Path(self.layer_e_teacher_output_dir) / "teacher_labels.csv")
 
