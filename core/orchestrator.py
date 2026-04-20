@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import os
 import time
 from typing import Literal
 
@@ -48,9 +49,10 @@ class PIPipeline:
             if judge_mode_literal == "base"
             else settings.layer_e_runtime_finetuned_model
         )
+        runtime_model_name = os.getenv("LAYER_E_RUNTIME_MODEL", runtime_model_name)
 
         self.layer_e_judge = LLMJudge(
-            llm_base_url=settings.layer_e_ollama_base_url,
+            llm_base_url=os.getenv("LAYER_E_OLLAMA_BASE_URL", settings.layer_e_ollama_base_url),
             model_name=runtime_model_name,
             temperature=settings.layer_e_temperature,
             timeout_s=settings.layer_e_timeout_s,
@@ -105,7 +107,7 @@ class PIPipeline:
             return self._create_result(
                 input_hash, start_time, layer_a_result,
                 layer_b_result=layer_b_result,
-                final_verdict=FinalVerdict.BLOCK,
+                final_verdict=FinalVerdict(layer_b_result.verdict),
                 decision_layer=DecisionLayer.LAYER_B,
                 confidence_score=layer_b_result.confidence_score,
             )
