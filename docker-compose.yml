@@ -1,0 +1,50 @@
+services:
+  barrikada-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: barrikada/api:latest
+    container_name: barrikada-api
+    environment:
+      LAYER_E_OLLAMA_BASE_URL: http://ollama:11434
+      LAYER_E_RUNTIME_MODEL: ${LAYER_E_RUNTIME_MODEL:-qwen3.5:2b}
+      BARRIKADA_ARTIFACTS_DIR: /artifacts
+      HF_HOME: /home/barrikada/.cache/huggingface
+      HUGGINGFACE_HUB_CACHE: /home/barrikada/.cache/huggingface/hub
+      SENTENCE_TRANSFORMERS_HOME: /home/barrikada/.cache/sentence_transformers
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./artifacts:/artifacts:ro
+      - hf_cache_user:/home/barrikada/.cache/huggingface
+      - st_cache_user:/home/barrikada/.cache/sentence_transformers
+    depends_on:
+      ollama:
+        condition: service_started
+      ollama-pull:
+        condition: service_completed_successfully
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: barrikada-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: barrikada-ollama-pull
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: "ollama pull ${LAYER_E_RUNTIME_MODEL:-qwen3.5:2b}"
+    restart: "no"
+
+volumes:
+  ollama_data:
+  hf_cache_user:
+  st_cache_user:
