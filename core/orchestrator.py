@@ -101,7 +101,7 @@ class PIPipeline:
         layer_b_result = self.layer_b_engine.detect(analysis_text) #type: ignore
 
         # MALICIOUS signatures => block immediately
-        if layer_b_result.verdict == "block":
+        if layer_b_result.verdict == "block" or layer_b_result.verdict == "allow":
             return self._create_result(
                 input_hash, start_time, layer_a_result,
                 layer_b_result=layer_b_result,
