@@ -154,7 +154,24 @@ Typical deployment policy:
 
 - Block `block` verdicts
 - Allow `flag` verdicts with warning metadata
-- Fail closed on detector errors/timeouts
+- Choose error policy per runtime (`fail-open` or `fail-closed`)
+
+### jentic-mini extension mode
+
+Barrikada can run as an extension to jentic-mini that evaluates prompt-injection risk
+for incoming endpoint traffic before normal request handling.
+
+Containerized baseline:
+
+- Run jentic-mini and Barrikada on the same Docker network.
+- Configure jentic-mini with `BARRIKADE_ENABLED=true`.
+- Point jentic-mini to Barrikada with `BARRIKADA_URL=http://barrikada-api:8000`.
+- Gate startup on Barrikada readiness (`GET /health/ready`).
+
+Suggested initial rollout:
+
+- Intercept all relevant user-input endpoints.
+- Use `fail-open` while validating production behavior.
 
 ## Repo structure
 

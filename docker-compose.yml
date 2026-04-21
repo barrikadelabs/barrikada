@@ -14,11 +14,16 @@ services:
       HUGGINGFACE_HUB_CACHE: /home/barrikada/.cache/huggingface/hub
       SENTENCE_TRANSFORMERS_HOME: /home/barrikada/.cache/sentence_transformers
     ports:
-      - "8000:8000"
+      - "${BARRIKADA_API_PORT:-8000}:8000"
     volumes:
       - ./artifacts:/artifacts:ro
       - hf_cache_user:/home/barrikada/.cache/huggingface
       - st_cache_user:/home/barrikada/.cache/sentence_transformers
+    networks:
+      barrikade-net:
+        aliases:
+          - barrikada-api
+          - barrikada
     depends_on:
       ollama:
         condition: service_started
@@ -29,9 +34,13 @@ services:
     image: ollama/ollama:latest
     container_name: barrikada-ollama
     ports:
-      - "11434:11434"
+      - "${OLLAMA_PORT:-11434}:11434"
     volumes:
       - ollama_data:/root/.ollama
+    networks:
+      barrikade-net:
+        aliases:
+          - ollama
 
   ollama-pull:
     image: ollama/ollama:latest
@@ -43,8 +52,15 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command: "ollama pull ${LAYER_E_RUNTIME_MODEL:-qwen3.5:2b}"
     restart: "no"
+    networks:
+      - barrikade-net
 
 volumes:
   ollama_data:
   hf_cache_user:
   st_cache_user:
+
+networks:
+  barrikade-net:
+    name: ${BARRIKADA_DOCKER_NETWORK:-barrikade-net}
+    driver: bridge
