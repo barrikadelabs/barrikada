@@ -4,11 +4,13 @@
 
 1. Create and activate a Python environment.
 2. Install dependencies from `requirements.txt`.
-3. Fetch runtime artifacts if needed:
+3. Fetch runtime artifacts and datasets if needed:
 
 ```bash
-barrikada fetch-artifacts --base-url <BARRIKADA_BASE_URL>
+./scripts/pull_artifacts.sh
 ```
+
+For full local setup, artifact management, and container workflows, see `docs/DEVELOPMENT.md`.
 
 ## Local Checks
 

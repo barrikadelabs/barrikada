@@ -156,6 +156,13 @@ Typical deployment policy:
 - Allow `flag` verdicts with warning metadata
 - Fail closed on detector errors/timeouts
 
+## Developer docs
+
+For setup, contribution workflow, Docker details, and artifact/dataset synchronization:
+
+- `CONTRIBUTING.md`
+- `docs/README.md`
+
 ## Repo structure
 
 - core: pipeline and layer implementations

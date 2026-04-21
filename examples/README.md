@@ -5,10 +5,10 @@ These examples are intentionally small and runnable.
 ## Prerequisites
 
 1. Install the package dependencies.
-2. Fetch runtime artifacts once:
+2. Fetch runtime artifacts and datasets once:
 
 ```bash
-barrikada fetch-artifacts --base-url <YOUR_ARTIFACT_BASE_URL>
+./scripts/pull_artifacts.sh
 ```
 
 ## Run
