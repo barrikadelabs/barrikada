@@ -39,6 +39,21 @@ docker compose up --build
 The stack runs on an explicit Docker bridge network named `barrikade-net` by default
 (override with `BARRIKADA_DOCKER_NETWORK`).
 
+## Combined Stack: Barrikada + jentic-mini
+
+From this repository root, run the combined extension stack (expects sibling
+`../jentic-mini` checkout):
+
+```bash
+docker compose -f compose.jentic-extension.yml up --build
+```
+
+This starts:
+
+- `barrikada-api`
+- `ollama`
+- `jentic-mini` with `BARRIKADE_ENABLED=true`
+
 ## Barrikada as jentic-mini Extension
 
 When used with jentic-mini, Barrikada runs as an endpoint security extension:

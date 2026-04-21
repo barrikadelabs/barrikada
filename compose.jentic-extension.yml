@@ -1,0 +1,96 @@
+services:
+  barrikada-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: barrikada/api:latest
+    container_name: barrikada-api
+    environment:
+      LAYER_E_OLLAMA_BASE_URL: http://ollama:11434
+      LAYER_E_RUNTIME_MODEL: ${LAYER_E_RUNTIME_MODEL:-qwen3.5:2b}
+      BARRIKADA_ARTIFACTS_DIR: /artifacts
+      HF_HOME: /home/barrikada/.cache/huggingface
+      HUGGINGFACE_HUB_CACHE: /home/barrikada/.cache/huggingface/hub
+      SENTENCE_TRANSFORMERS_HOME: /home/barrikada/.cache/sentence_transformers
+    ports:
+      - "${BARRIKADA_API_PORT:-8000}:8000"
+    volumes:
+      - ./artifacts:/artifacts:ro
+      - hf_cache_user:/home/barrikada/.cache/huggingface
+      - st_cache_user:/home/barrikada/.cache/sentence_transformers
+    networks:
+      barrikade-net:
+        aliases:
+          - barrikada-api
+          - barrikada
+    depends_on:
+      ollama:
+        condition: service_started
+      ollama-pull:
+        condition: service_completed_successfully
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: barrikada-ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      barrikade-net:
+        aliases:
+          - ollama
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: barrikada-ollama-pull
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: "ollama pull ${LAYER_E_RUNTIME_MODEL:-qwen3.5:2b}"
+    restart: "no"
+    networks:
+      - barrikade-net
+
+  jentic-mini:
+    build:
+      context: ../jentic-mini
+      dockerfile: Dockerfile
+    image: jentic-mini:latest
+    container_name: jentic-mini
+    user: "${JENTIC_UID:-1000}:${JENTIC_GID:-1000}"
+    restart: unless-stopped
+    ports:
+      - "${JENTIC_PORT:-8900}:8900"
+    volumes:
+      - ../jentic-mini/src:/app/src
+      - ${JENTIC_DATA_PATH:-../jentic-mini/data}:/app/data
+    environment:
+      JENTIC_PUBLIC_HOSTNAME: ${JENTIC_PUBLIC_HOSTNAME:-localhost}
+      JENTIC_TRUSTED_SUBNETS: ${JENTIC_TRUSTED_SUBNETS:-}
+      LOG_LEVEL: ${JENTIC_LOG_LEVEL:-info}
+      BARRIKADE_ENABLED: ${BARRIKADE_ENABLED:-true}
+      BARRIKADA_URL: http://barrikada-api:8000
+      BARRIKADA_TIMEOUT: ${BARRIKADA_TIMEOUT:-10.0}
+      BARRIKADE_FAIL_OPEN: ${BARRIKADE_FAIL_OPEN:-true}
+      BARRIKADE_VERBOSE_LOGS: ${BARRIKADE_VERBOSE_LOGS:-false}
+      BARRIKADE_MAX_BODY_BYTES: ${BARRIKADE_MAX_BODY_BYTES:-65536}
+      BARRIKADE_MAX_CANDIDATES: ${BARRIKADE_MAX_CANDIDATES:-16}
+    networks:
+      - barrikade-net
+    depends_on:
+      barrikada-api:
+        condition: service_started
+
+volumes:
+  ollama_data:
+  hf_cache_user:
+  st_cache_user:
+
+networks:
+  barrikade-net:
+    name: ${BARRIKADA_DOCKER_NETWORK:-barrikade-net}
+    driver: bridge

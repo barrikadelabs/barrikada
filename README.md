@@ -51,6 +51,12 @@ Run API + Ollama (separate service) with docker compose:
 docker compose up --build
 ```
 
+Run Barrikada as a jentic-mini extension stack (requires sibling `../jentic-mini`):
+
+```bash
+docker compose -f compose.jentic-extension.yml up --build
+```
+
 Send a detection request:
 
 ```bash
