@@ -32,3 +32,5 @@ venv
 
 # Local test cache
 .pytest_cache/
+
+.env

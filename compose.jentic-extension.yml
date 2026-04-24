@@ -79,6 +79,9 @@ services:
       BARRIKADE_VERBOSE_LOGS: ${BARRIKADE_VERBOSE_LOGS:-false}
       BARRIKADE_MAX_BODY_BYTES: ${BARRIKADE_MAX_BODY_BYTES:-65536}
       BARRIKADE_MAX_CANDIDATES: ${BARRIKADE_MAX_CANDIDATES:-16}
+      BARRIKADE_SCAN_OUTBOUND: ${BARRIKADE_SCAN_OUTBOUND:-true}
+      BARRIKADE_OUTBOUND_INCLUDE_KEYS: "text,content,message,prompt,instruction,summary,description,comment,title,body,answer,response,output,paragraph,rich_text,plain_text"
+      BARRIKADE_EGRESS_MAX_BODY_BYTES: ${BARRIKADE_EGRESS_MAX_BODY_BYTES:-65536}
     networks:
       - barrikade-net
     depends_on:
