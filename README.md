@@ -180,4 +180,4 @@ We are actively working with early users.
 
 If you are building AI agents or LLM apps, reach out at:
 
-ishaan.arakkal@gmail.com
+ishaan@barrikade.ai
