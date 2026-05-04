@@ -87,7 +87,10 @@ git clone --depth 1 --branch "$REF" "$REPO_URL" "$TMP_DIR/repo"
 
 pushd "$TMP_DIR/repo" >/dev/null
 git lfs install --local >/dev/null
-git lfs pull >/dev/null
+echo "[pull-artifacts] Fetching LFS objects..."
+git lfs fetch origin "$REF"
+echo "[pull-artifacts] Pulling LFS objects..."
+git lfs pull
 popd >/dev/null
 
 map_path() {
