@@ -106,7 +106,7 @@ PATHS=(
   "core/layer_c/outputs"
   "core/layer_c/train/outputs"
   "core/layer_d/outputs"
-  "core/layer_e/outputs"
+  "core/layer_e/outputs/merged_teacher"
 )
 
 for rel in "${PATHS[@]}"; do
