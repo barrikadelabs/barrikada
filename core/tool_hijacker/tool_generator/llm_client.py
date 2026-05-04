@@ -1,56 +1,42 @@
-"""
-Simple LLM client for Ollama.
-"""
+"""Simple local teacher-backed LLM client."""
 
-import requests
-from typing import Optional
+import torch
+from typing import Any, cast
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from core.settings import Settings
 
 
 class LLMClient:
-    """Handles communication with Ollama API."""
+    """Handles local teacher model text generation."""
     
-    def __init__(self, model= "llama3.2", base_url= "http://localhost:11434"):
-        self.model = model
+    def __init__(self, model= None, base_url= None):
+        settings = Settings()
+        self.model = model or settings.layer_e_teacher_local_model_dir
         self.base_url = base_url
-        self.generate_url = f"{base_url}/api/generate"
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model, trust_remote_code=True)
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token or self.tokenizer.unk_token or self.tokenizer.pad_token
+        dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model_obj = AutoModelForCausalLM.from_pretrained(self.model, torch_dtype=dtype, trust_remote_code=True)
+        cast(Any, self.model_obj).to(self.device)
+        cast(Any, self.model_obj).eval()
     
     def generate(self, prompt, max_tokens= 150):
-        """
-        Generate text from prompt.
-        
-        Args:
-            prompt: Input prompt
-            max_tokens: Max tokens to generate
-            
-        Returns:
-            Generated text or None if failed
-        """
-        try:
-            response = requests.post(
-                self.generate_url,
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {"num_predict": max_tokens}
-                },
-                timeout=30
+        encoded = self.tokenizer(prompt, return_tensors="pt")
+        encoded = {key: value.to(self.device) for key, value in encoded.items()}
+        with torch.no_grad():
+            output_ids = self.model_obj.generate(
+                **encoded,
+                max_new_tokens=max_tokens,
+                do_sample=False,
+                temperature=0.2,
+                pad_token_id=self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
             )
-            
-            if response.status_code == 200:
-                return response.json().get("response", "").strip()
-            else:
-                print(f"LLM error: {response.status_code}")
-                return None
-                
-        except Exception as e:
-            print(f"LLM request failed: {e}")
-            return None
+        generated = output_ids[0][encoded["input_ids"].shape[-1]:]
+        return str(self.tokenizer.decode(generated, skip_special_tokens=True)).strip()
     
     def is_available(self):
-        """Check if Ollama is running."""
-        try:
-            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
-            return response.status_code == 200
-        except:
-            return False
+        """Check if the local model can be used."""
+        return True

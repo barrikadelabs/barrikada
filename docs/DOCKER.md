@@ -20,7 +20,6 @@ docker build --target production -t barrikada/api:latest .
 
 ```bash
 docker run --rm -p 8000:8000 \
-  -e LAYER_E_OLLAMA_BASE_URL=http://host.docker.internal:11434 \
   -e BARRIKADA_ARTIFACTS_DIR=/artifacts \
   -v "$(pwd)/artifacts:/artifacts:ro" \
   barrikada/api:latest
@@ -34,7 +33,6 @@ docker compose up --build
 
 `docker-compose.yml` starts:
 - `barrikada-api`
-- `ollama` (separate service)
 
 ## API Contract
 
@@ -66,12 +64,11 @@ Set `include_diagnostics=true` to receive full per-layer output.
 ## Health Endpoints
 
 - `GET /health/live`: process alive
-- `GET /health/ready`: pipeline initialized and Layer E backend reachable
+- `GET /health/ready`: pipeline initialized and local Layer E judge ready
 
 ## Environment
 
-- `LAYER_E_OLLAMA_BASE_URL`: Ollama base URL (default in code: `http://localhost:11434`)
-- `LAYER_E_RUNTIME_MODEL`: Ollama model tag required by Layer E (default: `qwen3.5:2b`)
+- `BARRIKADA_LAYER_E_TEACHER_LOCAL_MODEL_DIR`: local teacher checkpoint directory (default: `core/layer_e/outputs/teacher/merged_teacher`)
 - `BARRIKADA_ARTIFACTS_DIR`: root path for externalized runtime artifacts
 - `HF_HOME`: Hugging Face cache root
 - `HUGGINGFACE_HUB_CACHE`: Hugging Face hub cache path

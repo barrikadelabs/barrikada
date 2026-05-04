@@ -7,7 +7,7 @@ Clean, modular LLM-powered tool document generator for training and testing.
 ```
 tool_generator/
 ├── __init__.py           # Package exports
-├── llm_client.py         # Ollama API client (60 lines)
+├── llm_client.py         # Local teacher-backed client (60 lines)
 ├── tool_factory.py       # Tool creation logic (90 lines)
 └── testbed_generator.py  # Main orchestrator (130 lines)
 ```
@@ -15,13 +15,7 @@ tool_generator/
 ## Quick Start
 
 ```bash
-# 1. Start Ollama
-ollama serve
-
-# 2. Pull model
-ollama pull llama3.2
-
-# 3. Generate testbed
+# Generate testbed
 python3 generate_testbed.py
 ```
 
@@ -30,7 +24,7 @@ python3 generate_testbed.py
 ```python
 from core.tool_hijacker.tool_generator import TestbedGenerator
 
-# Initialize (requires Ollama running)
+# Initialize (uses the local teacher checkpoint)
 generator = TestbedGenerator(model="llama3.2")
 
 # Generate dataset
@@ -45,7 +39,7 @@ print(f"Saved to: {filename}")
 ## Command Line Options
 
 ```bash
-# Default: 50 benign + 50 malicious with llama3.2
+# Default: 50 benign + 50 malicious
 python3 generate_testbed.py
 
 # Custom amounts
@@ -70,10 +64,9 @@ CSV file with columns:
 ## Modules
 
 ### `llm_client.py`
-Simple wrapper for Ollama API.
+Simple wrapper for the local teacher model.
 - Generates text from prompts
-- Checks if Ollama is available
-- Handles timeouts and errors
+- Loads the local checkpoint once and reuses it
 
 ### `tool_factory.py`
 Creates tool documents using LLM.
@@ -82,7 +75,7 @@ Creates tool documents using LLM.
 
 ### `testbed_generator.py`
 Orchestrates the generation process.
-- Validates Ollama availability
+- Validates local model availability
 - Manages dataset creation
 - Shuffles and saves to CSV
 - Progress reporting

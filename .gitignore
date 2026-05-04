@@ -15,6 +15,7 @@
 /core/layer_c/outputs/releases/**/classifier.joblib
 /core/layer_d/outputs/model/
 /core/layer_d/outputs/releases/**/model/
+/core/layer_e/outputs/
 
 __pycache__
 venv

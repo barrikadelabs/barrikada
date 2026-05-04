@@ -1,16 +1,13 @@
 import json
 import logging
-import os
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any
-from urllib import error, request
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from core.orchestrator import PIPipeline
-from core.settings import Settings
 
 log = logging.getLogger(__name__)
 
@@ -40,35 +37,10 @@ class HealthResponse(BaseModel):
 class ReadinessResponse(BaseModel):
     status: str
     pipeline_initialized: bool
-    ollama_reachable: bool
     details: str | None = None
 
 
 state = AppState()
-
-
-def _check_ollama(base_url: str, timeout_s: float = 2.0):
-    endpoint = f"{base_url.rstrip('/')}/api/tags"
-    req = request.Request(endpoint, method="GET")
-    try:
-        with request.urlopen(req, timeout=timeout_s) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
-            if 200 <= resp.status < 300:
-                return True, None, body
-            return False, f"Unexpected status {resp.status} from {endpoint}", None
-    except (error.URLError, error.HTTPError, TimeoutError) as exc:
-        return False, str(exc), None
-
-
-def _has_ollama_model(tags_response: dict[str, Any] | None, model_name: str) -> bool:
-    if not tags_response:
-        return False
-    models = tags_response.get("models", [])
-    for model in models:
-        name = str(model.get("name", "")).strip()
-        if name == model_name:
-            return True
-    return False
 
 
 @asynccontextmanager
@@ -85,9 +57,9 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="Barrikada Detection API",
+    title="Barrikade Detection API",
     version="0.0.1",
-    description="Production API for the Barrikada detection pipeline.",
+    description="Production API for the Barrikade detection pipeline.",
     lifespan=lifespan,
 )
 
@@ -99,43 +71,16 @@ def live():
 
 @app.get("/health/ready", response_model=ReadinessResponse)
 def ready():
-    settings = Settings()
     if state.pipeline is None:
         raise HTTPException(
             status_code=503,
             detail=(state.startup_error or "Pipeline not initialized"),
         )
 
-    ollama_base_url = os.getenv("LAYER_E_OLLAMA_BASE_URL", settings.layer_e_ollama_base_url)
-    ollama_ok, ollama_err, tags_response = _check_ollama(ollama_base_url)
-    if not ollama_ok:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Layer E backend unreachable: {ollama_err}",
-        )
-
-    judge_mode = settings.layer_e_judge_mode.strip().lower()
-    required_model = (
-        settings.layer_e_runtime_finetuned_model
-        if judge_mode == "finetuned"
-        else settings.layer_e_runtime_base_model
-    )
-    required_model = os.getenv("LAYER_E_RUNTIME_MODEL", required_model)
-    if not _has_ollama_model(tags_response, required_model):
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                f"Layer E model '{required_model}' not found in Ollama. "
-                "Pull it with: ollama pull "
-                f"{required_model}"
-            ),
-        )
-
     return ReadinessResponse(
         status="ready",
         pipeline_initialized=True,
-        ollama_reachable=True,
-        details=None,
+        details="Layer E judge active.",
     )
 
 

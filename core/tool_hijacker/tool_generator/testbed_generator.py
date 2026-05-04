@@ -12,7 +12,7 @@ from .tool_factory import ToolFactory
 
 
 class TestbedGenerator:
-    """Generates testbed of benign and malicious tool documents using LLM."""
+    """Generates testbed of benign and malicious tool documents using a local LLM."""
     
     # Tool categories (same as ToolFactory)
     CATEGORIES = [
@@ -27,7 +27,7 @@ class TestbedGenerator:
         
         Args:
             output_dir: Where to save generated tools
-            model: Ollama model name
+            model: Local model path or identifier
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -35,9 +35,7 @@ class TestbedGenerator:
         # Initialize LLM
         self.llm = LLMClient(model=model)
         if not self.llm.is_available():
-            raise RuntimeError(
-                "Ollama is not running! Please start it with: ollama serve"
-            )
+            raise RuntimeError("Local model is not available")
         
         self.factory = ToolFactory(self.llm)
     

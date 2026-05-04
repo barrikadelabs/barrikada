@@ -1,7 +1,10 @@
 import json
+import time
 from dataclasses import dataclass
-from typing import Any
-from urllib import error, request
+from typing import Any, cast
+
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from core.settings import Settings
 from models.PipelineResult import PipelineResult
@@ -30,27 +33,20 @@ class BaselineResult:
     latency_ms: float
 
 
-def _http_json(url, payload= None, timeout_s= 20.0, ):
-    if payload is None:
-        req = request.Request(url, method="GET")
-    else:
-        body = json.dumps(payload).encode("utf-8")
-        req = request.Request(
-            url,
-            data=body,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-
-    with request.urlopen(req, timeout=timeout_s) as response:
-        return json.loads(response.read().decode("utf-8"))
-
-
 def selected_runtime_model(settings):
-    mode = settings.layer_e_judge_mode.strip().lower()
-    if mode == "finetuned":
-        return settings.layer_e_runtime_finetuned_model
-    return settings.layer_e_runtime_base_model
+    return settings.layer_e_teacher_local_model_dir
+
+
+def _load_teacher_model(settings):
+    model_dir = settings.layer_e_teacher_local_model_dir
+    tokenizer = AutoTokenizer.from_pretrained(model_dir, trust_remote_code=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token or tokenizer.unk_token or tokenizer.pad_token
+    dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    model = AutoModelForCausalLM.from_pretrained(model_dir, torch_dtype=dtype, trust_remote_code=True)
+    cast(Any, model).to("cuda" if torch.cuda.is_available() else "cpu")
+    cast(Any, model).eval()
+    return tokenizer, model
 
 
 def summarize_pipeline(result):
@@ -128,33 +124,30 @@ def layer_statuses(summary):
 
 
 def run_unprotected_baseline(prompt, settings):
-    import time
-
-    base_url = settings.layer_e_ollama_base_url.rstrip("/")
+    tokenizer, model = _load_teacher_model(settings)
     model_name = selected_runtime_model(settings)
 
-    payload = {
-        "model": model_name,
-        "stream": False,
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a capable assistant. Follow the user instructions directly and provide a complete answer.",
-            },
-            {"role": "user", "content": prompt},
-        ],
-        "options": {
-            "temperature": 0.2,
-            "num_predict": 220,
+    messages = [
+        {
+            "role": "system",
+            "content": "You are a capable assistant. Follow the user instructions directly and provide a complete answer.",
         },
-    }
+        {"role": "user", "content": prompt},
+    ]
 
+    rendered_prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    encoded = tokenizer(rendered_prompt, return_tensors="pt")
+    encoded = {key: value.to(model.device) for key, value in encoded.items()}
     started = time.time()
-    response = _http_json(
-        f"{base_url}/api/chat",
-        payload=payload,
-        timeout_s=max(settings.layer_e_timeout_s, 30.0),
-    )
+    with torch.no_grad():
+        output_ids = model.generate(
+            **encoded,
+            max_new_tokens=220,
+            do_sample=False,
+            temperature=0.2,
+            pad_token_id=tokenizer.pad_token_id or tokenizer.eos_token_id,
+        )
     latency_ms = (time.time() - started) * 1000.0
-    content = str(response.get("message", {}).get("content", "")).strip()
+    generated = output_ids[0][encoded["input_ids"].shape[-1]:]
+    content = str(tokenizer.decode(generated, skip_special_tokens=True)).strip()
     return BaselineResult(output=content, model=model_name, latency_ms=latency_ms)

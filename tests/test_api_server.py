@@ -64,3 +64,22 @@ def test_detect_unavailable_pipeline_returns_503():
 
     assert resp.status_code == 503
     assert "Pipeline boot failed" in resp.json()["detail"]
+
+
+def test_ready_local_teacher_mode(monkeypatch):
+    state.pipeline = _FakePipeline() #type: ignore
+    state.startup_error = None
+
+    monkeypatch.setattr(
+        "api.server.Settings",
+        lambda: SimpleNamespace(layer_e_judge_mode="finetuned"),
+    )
+
+    client = TestClient(app)
+    resp = client.get("/health/ready")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["status"] == "ready"
+    assert payload["pipeline_initialized"] is True
+    assert "teacher-backed" in payload["details"]

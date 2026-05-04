@@ -1,8 +1,6 @@
 import hashlib
 import logging
-import os
 import time
-from typing import Literal
 
 from core.settings import Settings
 from models.PipelineResult import PipelineResult
@@ -37,29 +35,14 @@ class PIPipeline:
             high=settings.layer_d_high_threshold,
             max_length=settings.layer_d_max_length,
         )
-        judge_mode = settings.layer_e_judge_mode.strip().lower()
-        if judge_mode not in {"base", "finetuned"}:
-            judge_mode = "base"
-        judge_mode_literal: Literal["base", "finetuned"] = (
-            "finetuned" if judge_mode == "finetuned" else "base"
-        )
-
-        runtime_model_name = (
-            settings.layer_e_runtime_base_model
-            if judge_mode_literal == "base"
-            else settings.layer_e_runtime_finetuned_model
-        )
-        runtime_model_name = os.getenv("LAYER_E_RUNTIME_MODEL", runtime_model_name)
-
         self.layer_e_judge = LLMJudge(
-            llm_base_url=os.getenv("LAYER_E_OLLAMA_BASE_URL", settings.layer_e_ollama_base_url),
-            model_name=runtime_model_name,
+            model_dir=settings.layer_e_teacher_local_model_dir,
+            model_name=settings.layer_e_teacher_local_model_dir,
             temperature=settings.layer_e_temperature,
             timeout_s=settings.layer_e_timeout_s,
             max_retries=settings.layer_e_max_retries,
             max_new_tokens=settings.layer_e_max_new_tokens,
             no_think_default=settings.layer_e_no_think_default,
-            judge_mode=judge_mode_literal,
         )
 
     def _create_result(self, input_hash, start_time, layer_a_result, final_verdict, decision_layer, confidence_score, layer_b_result=None, layer_c_result=None, layer_d_result=None, layer_e_result_dict=None, layer_e_time_ms=None, ):

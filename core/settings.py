@@ -265,11 +265,8 @@ class Settings(BaseModel):
         )
 
     ### Layer E (Qwen3.5 LLM judge)
-    layer_e_ollama_base_url: str = "http://localhost:11434"
-    layer_e_judge_mode: str = "base"  # base | finetuned
-    layer_e_runtime_base_model: str = "qwen3.5:2b"
+    layer_e_judge_mode: str = "finetuned"
     layer_e_runtime_finetuned_model: str = "qwen3.5:4b"
-    layer_e_runtime_model: str = "qwen3.5:2b"
     layer_e_temperature: float = 0.0
     layer_e_timeout_s: float = 30.0
     layer_e_max_retries: int = 2
@@ -306,5 +303,12 @@ class Settings(BaseModel):
         return self._output_file_with_override(
             "BARRIKADA_LAYER_E_TEACHER_REPORT_PATH",
             self._default_results_dir() / "layer_e_teacher_eval_latest.json",
+        )
+
+    @property
+    def layer_e_teacher_local_model_dir(self):
+        return self._path_with_override(
+            "BARRIKADA_LAYER_E_TEACHER_LOCAL_MODEL_DIR",
+            Path(self.layer_e_teacher_output_dir) / "merged_teacher",
         )
 

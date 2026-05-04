@@ -45,7 +45,7 @@ Build the production image:
 docker build --target production -t barrikada/api:latest .
 ```
 
-Run API + Ollama (separate service) with docker compose:
+Run the API locally with docker compose:
 
 ```bash
 docker compose up --build
@@ -83,7 +83,7 @@ It applies a staged pipeline so most traffic exits early at low cost and only un
 - Layer B: signature and embedding-based screening
 - Layer C: lightweight ML classifier
 - Layer D: optional higher-cost classifier path
-- Layer E: LLM judge fallback
+- Layer E: local teacher judge fallback
 
 ## Architecture overview
 

@@ -3,7 +3,7 @@
 This demo showcases live attack-vs-defense behavior:
 
 - WITH BARRIKADA: layered pipeline verdict and explanation (always runs on Analyze)
-- WITHOUT SECURITY: optional direct model output from Ollama (runs only when clicked)
+- WITHOUT SECURITY: optional direct model output from the local teacher model (runs only when clicked)
 
 ## Run
 
@@ -16,13 +16,9 @@ streamlit run demo/streamlit_app.py
 
 ## Runtime requirement
 
-The demo uses local Ollama for baseline and Layer E execution.
+The demo uses the local teacher checkpoint for baseline and Layer E execution.
 
-If required models are missing, pull them before running, for example:
-
-```bash
-ollama pull qwen3.5:2b
-```
+If required artifacts are missing, point the demo at `core/layer_e/outputs/teacher/merged_teacher` or set `BARRIKADA_LAYER_E_TEACHER_LOCAL_MODEL_DIR`.
 
 ## Open Day flow
 
