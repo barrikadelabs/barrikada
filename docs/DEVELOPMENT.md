@@ -38,6 +38,13 @@ git commit -m "Update Barrikada artifacts and datasets"
 git push origin <artifact-branch>
 ```
 
+Or push directly from this repo using the helper script:
+
+```bash
+./scripts/push_artifacts.sh --branch <artifact-branch>
+./scripts/push_artifacts.sh --branch <artifact-branch> --path core/layer_e/outputs
+```
+
 ## Pull artifacts and datasets into this repo
 
 From the Barrikada codebase root:
