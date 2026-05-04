@@ -9,7 +9,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.settings import Settings
-from core.model_registry import current_git_commit, file_sha256, update_latest_pointer, write_manifest
 from core.layer_c.train.load_data import load_data
 from core.layer_c.train.utils import save, write_json
 from core.layer_c.train.train_eval import train_eval
@@ -100,14 +99,14 @@ def main():
         write_json(str(release_report_path), report_payload)
 
         if not args.no_set_latest:
-            update_latest_pointer(release_root, args.model_version)
+            print("Skipping update of releases/LATEST pointer (model_registry removed)")
 
         manifest = {
             "layer": "layer_c",
             "model_type": "xgboost_embedding_classifier",
             "model_version": args.model_version,
             "created_at_utc": datetime.now(timezone.utc).isoformat(),
-            "git_commit": current_git_commit(PROJECT_ROOT),
+            "git_commit": None,
             "dataset": {
                 "csv": args.csv,
                 "rows_used": int(len(df)),
@@ -118,12 +117,12 @@ def main():
                 "eval_report": str(release_report_path.relative_to(PROJECT_ROOT)),
             },
             "checksums": {
-                "classifier_sha256": file_sha256(release_model_path),
-                "eval_report_sha256": file_sha256(release_report_path),
+                "classifier_sha256": None,
+                "eval_report_sha256": None,
             },
         }
         manifest_path = release_dir / "manifest.json"
-        write_manifest(manifest_path, manifest)
+        write_json(str(manifest_path), manifest)
         print(f"Released Layer C model version: {args.model_version}")
         print(f"Release manifest: {manifest_path}")
 
