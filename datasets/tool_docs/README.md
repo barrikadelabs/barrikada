@@ -14,23 +14,32 @@ python3 generate_testbed.py
 python3 generate_testbed.py --benign 50 --malicious 50
 ```
 
-### Local model fallback
+### Without Ollama (using fallback)
 ```bash
-python3 generate_testbed.py
+python3 generate_testbed.py --no-ollama
 ```
 
-### Different local model
+### Different Ollama Model
 ```bash
-python3 generate_testbed.py --model /path/to/local/checkpoint
+python3 generate_testbed.py --model llama2
 ```
 
 ## Prerequisites
 
-### Local model (recommended)
-Use a local checkpoint or the Barrikada teacher artifact:
+### Option 1: With Ollama (Recommended)
+Install Ollama and pull a model:
 ```bash
-python3 generate_testbed.py --model core/layer_e/outputs/teacher/merged_teacher
+# Install Ollama from https://ollama.ai
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Pull a model (choose one)
+ollama pull deepseek-r1:1.5b     # Default, fast, 1.5GB
+ollama pull llama2              # Alternative, 3.8GB
+ollama pull mistral             # Alternative, 4.1GB
 ```
+
+### Option 2: Without Ollama
+Use `--no-ollama` flag - will use simple fallback generation.
 
 ## Output Files
 
