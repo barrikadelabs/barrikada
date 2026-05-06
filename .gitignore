@@ -5,7 +5,7 @@
 
 /test_results/
 
-# Externalized runtime artifacts (downloaded via barrikada fetch-artifacts)
+# Externalized runtime artifacts
 /core/layer_b/signatures/extracted/
 /core/layer_b/signatures/embeddings/*.bin
 /core/layer_b/signatures/embeddings/*.npy
@@ -16,6 +16,22 @@
 /core/layer_d/outputs/model/
 /core/layer_d/outputs/releases/**/model/
 /core/layer_e/outputs/
+/core/models/
+
+# Centralized model storage (downloaded from GCS or bundled from layer outputs)
+# Directory structure preserved with .gitkeep files
+/core/models/layer_b/*.faiss
+/core/models/layer_b/*.npy
+/core/models/layer_b/*.json
+/core/models/layer_b/archives/backup_*
+/core/models/layer_c/*.joblib
+/core/models/layer_c/archives/backup_*
+/core/models/layer_d/model/
+/core/models/layer_d/tokenizer.json
+/core/models/layer_d/config.json
+/core/models/layer_d/archives/backup_*
+/core/models/layer_e/teacher/
+/core/models/layer_e/archives/backup_*
 
 __pycache__
 venv

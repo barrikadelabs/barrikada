@@ -7,14 +7,13 @@ services:
     image: barrikada/api:latest
     container_name: barrikada-api
     environment:
-      BARRIKADA_ARTIFACTS_DIR: /artifacts
+      BARRIKADA_GCS_BUCKET: ${BARRIKADA_GCS_BUCKET:?set BARRIKADA_GCS_BUCKET} #TODO: remove this env var and hardcode bucket name in code
       HF_HOME: /home/barrikada/.cache/huggingface
       HUGGINGFACE_HUB_CACHE: /home/barrikada/.cache/huggingface/hub
       SENTENCE_TRANSFORMERS_HOME: /home/barrikada/.cache/sentence_transformers
     ports:
       - "8000:8000"
     volumes:
-      - ./artifacts:/artifacts:ro
       - hf_cache_user:/home/barrikada/.cache/huggingface
       - st_cache_user:/home/barrikada/.cache/sentence_transformers
 

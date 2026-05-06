@@ -16,13 +16,18 @@ notebooks
 demos
 test_results
 tests
-scripts
 
 *.ipynb
 *.csv
 *.parquet
 *.log
 
-# Local model/cache data should be mounted in production where needed.
+# Docker runtime downloads models from GCS at startup.
 .cache
 models_cache
+core/models/**
+core/layer_b/signatures/**
+core/layer_c/outputs/**
+core/layer_c/train/outputs/**
+core/layer_d/outputs/**
+core/layer_e/outputs/**
