@@ -11,63 +11,41 @@ This guide covers developer-facing workflows for Barrikada.
 pip install -r requirements.txt
 ```
 
-3. Pull runtime artifacts and datasets:
+3. Models and datasets are automatically downloaded from Google Cloud Storage on first use.
+   No configuration needed — see `docs/MODEL_HOSTING.md` for details.
+
+## Model distribution
+
+Runtime models and datasets are distributed via Google Cloud Storage public buckets.
+
+**Key points:**
+- No credentials needed for download (public read access)
+- Models auto-fetch on first import from `core/` pipeline
+- Docker containers auto-download models at startup
+- Manual download available via scripts in `scripts/gcs_download.py`
+
+For complete documentation, see `docs/MODEL_HOSTING.md`.
+
+## Training Layer B encoders
+
+To train custom dual-encoder models for Layer B:
 
 ```bash
-./scripts/pull_artifacts.sh
+python core/layer_b/extraction/train_dual_encoder.py
 ```
 
-## Private artifacts repository
-
-Barrikada runtime artifacts and datasets are managed in:
-
-- https://github.com/barrikadelabs/barrikade-artifacts
-
-One-time Git LFS setup per machine:
+After training, rebuild signatures:
 
 ```bash
-brew install git-lfs
-git lfs install
+python core/layer_b/extraction/extract_signature_patterns.py
 ```
 
-Update and push artifacts from the artifacts repository:
+These scripts are also accessible via wrapper scripts in `scripts/` for convenience:
 
 ```bash
-git add datasets core/layer_b/signatures core/layer_c/outputs core/layer_c/train/outputs core/layer_d/outputs core/layer_e/outputs
-git commit -m "Update Barrikada artifacts and datasets"
-git push origin <artifact-branch>
+python scripts/train_dual_encoder.py
+python scripts/extract_signature_patterns.py
 ```
-
-Or push directly from this repo using the helper script:
-
-```bash
-./scripts/push_artifacts.sh --branch <artifact-branch>
-./scripts/push_artifacts.sh --branch <artifact-branch> --path core/layer_e/outputs
-```
-
-## Pull artifacts and datasets into this repo
-
-From the Barrikada codebase root:
-
-```bash
-./scripts/pull_artifacts.sh
-```
-
-Optional flags:
-
-```bash
-./scripts/pull_artifacts.sh --ref <artifact-branch>
-./scripts/pull_artifacts.sh --source-prefix artifacts
-./scripts/pull_artifacts.sh --delete
-```
-
-## If files were committed before LFS
-
-Run once in the artifacts repository:
-
-```bash
-git lfs migrate import --include="datasets/**,core/layer_b/signatures/embeddings/**,core/layer_b/signatures/extracted/*.yar,core/layer_c/outputs/**,core/layer_c/train/outputs/**,core/layer_d/outputs/**,core/layer_e/outputs/**"
-git push --force-with-lease
 ```
 
 ## Docker workflow

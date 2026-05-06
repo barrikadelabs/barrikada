@@ -33,6 +33,8 @@ fonttools==4.60.2
 frozenlist==1.8.0
 fsspec==2025.10.0
 ftfy==6.3.1
+google-cloud-storage>=2.10.0
+gcsfs>=2024.1.0
 h11==0.16.0
 hf-xet==1.2.0
 httpcore==1.0.9
