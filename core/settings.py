@@ -57,7 +57,7 @@ class Settings(BaseModel):
         raise FileNotFoundError(
             f"Could not locate {purpose}. Searched:\n{searched}\n"
             f"Set {env_var} to an explicit path if needed. "
-            "If artifacts are externalized, run 'barrikada fetch-artifacts --base-url <url>'."
+            f"For automatic GCS downloads, see docs/MODEL_HOSTING.md"
         )
 
     def _default_results_dir(self) -> Path:
@@ -78,6 +78,18 @@ class Settings(BaseModel):
             "BARRIKADA_ARTIFACTS_DIR",
             self._user_state_root / "artifacts",
         )
+
+    # ===== MODEL ORGANIZATION (Updated 2026) =====
+    # Models are now centrally managed in core/models/ with the following structure:
+    #   core/models/layer_b/   - Signature engine (FAISS indices, embeddings)
+    #   core/models/layer_c/   - ML Classifier (joblib models)
+    #   core/models/layer_d/   - ModernBERT (HuggingFace format)
+    #   core/models/layer_e/   - LLM Judge (HuggingFace checkpoint)
+    # 
+    # Each layer directory contains current models and archives/ subfolder with versioned backups.
+    # Models are pulled from Google Cloud Storage (GCS) for team access and versioning.
+    # For deployment details, see: docs/MODEL_HOSTING.md
+    # =============================================
 
     ### Layer B (embedding-based contrastive signature engine)
     layer_b_embedding_model: str = "BAAI/bge-small-en-v1.5"

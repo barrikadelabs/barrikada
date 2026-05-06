@@ -4,12 +4,13 @@ These examples are intentionally small and runnable.
 
 ## Prerequisites
 
-1. Install the package dependencies.
-2. Fetch runtime artifacts and datasets once:
+1. Install the package dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```bash
-./scripts/pull_artifacts.sh
-```
+2. Models are auto-downloaded on first run from Google Cloud Storage public buckets.
+   No credentials needed — see `docs/MODEL_HOSTING.md` for details.
 
 ## Run
 
@@ -18,4 +19,5 @@ python examples/quickstart.py
 python examples/basic_detection.py
 ```
 
-If artifacts are missing, the runtime raises a `FileNotFoundError` with the exact path and required environment override.
+If models are missing, the runtime will attempt to download them automatically.
+For manual download or offline setup, see `docs/MODEL_HOSTING.md`.

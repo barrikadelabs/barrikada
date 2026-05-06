@@ -1,15 +1,2 @@
-datasets/barrikada.csv filter=lfs diff=lfs merge=lfs -text
-datasets/barrikada_test.csv filter=lfs diff=lfs merge=lfs -text
-datasets/malignant_processed.csv filter=lfs diff=lfs merge=lfs -text
-
-# Layer B signatures + embedding artifacts
-core/layer_b/signatures/embeddings/** filter=lfs diff=lfs merge=lfs -text
-core/layer_b/signatures/extracted/*.yar filter=lfs diff=lfs merge=lfs -text
-
-# Layer C trained model artifacts and cached feature outputs
-core/layer_c/outputs/** filter=lfs diff=lfs merge=lfs -text
-core/layer_c/train/outputs/** filter=lfs diff=lfs merge=lfs -text
-
-# Layer D and Layer E training outputs
-core/layer_d/outputs/** filter=lfs diff=lfs merge=lfs -text
-core/layer_e/outputs/** filter=lfs diff=lfs merge=lfs -text
+# Large artifacts are distributed via Google Cloud Storage (GCS) buckets
+# See docs/MODEL_HOSTING.md for details on downloading models

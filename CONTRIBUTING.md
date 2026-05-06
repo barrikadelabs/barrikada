@@ -4,13 +4,20 @@
 
 1. Create and activate a Python environment.
 2. Install dependencies from `requirements.txt`.
-3. Fetch runtime artifacts and datasets if needed:
+3. Run the pipeline or use Docker to automatically fetch runtime artifacts:
 
+**Local (auto-fetches on first import):**
 ```bash
-./scripts/pull_artifacts.sh
+python examples/quickstart.py
 ```
 
-For full local setup, artifact management, and container workflows, see `docs/DEVELOPMENT.md`.
+**Docker (auto-fetches at startup):**
+```bash
+docker-compose up
+```
+
+For model hosting details and manual download workflows, see `docs/MODEL_HOSTING.md`.
+For full local setup and container workflows, see `docs/DEVELOPMENT.md`.
 
 ## Local Checks
 

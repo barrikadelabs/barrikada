@@ -20,10 +20,14 @@ docker build --target production -t barrikada/api:latest .
 
 ```bash
 docker run --rm -p 8000:8000 \
-  -e BARRIKADA_ARTIFACTS_DIR=/artifacts \
-  -v "$(pwd)/artifacts:/artifacts:ro" \
+  -e BARRIKADA_GCS_BUCKET=<public-gcs-bucket> \
   barrikada/api:latest
 ```
+
+The container downloads models from the public GCS bucket on startup and does not
+use local model mounts.
+
+See `docs/MODEL_HOSTING.md` for details on model distribution and configuration.
 
 ## Compose (Recommended)
 
@@ -68,11 +72,17 @@ Set `include_diagnostics=true` to receive full per-layer output.
 
 ## Environment
 
-- `BARRIKADA_LAYER_E_TEACHER_LOCAL_MODEL_DIR`: local teacher checkpoint directory (default: `core/layer_e/outputs/teacher/merged_teacher`)
-- `BARRIKADA_ARTIFACTS_DIR`: root path for externalized runtime artifacts
+- `BARRIKADA_GCS_BUCKET`: public bucket that hosts the runtime models
 - `HF_HOME`: Hugging Face cache root
 - `HUGGINGFACE_HUB_CACHE`: Hugging Face hub cache path
 - `SENTENCE_TRANSFORMERS_HOME`: sentence-transformers cache path
+
+The image starts by downloading all runtime models from GCS and validates them
+before launching the API. Internal model paths resolve under `/app/core/models`
+and do not require any local volume mount.
+
+Models are automatically downloaded from Google Cloud Storage on container startup.
+For offline deployment or custom model sources, see `docs/MODEL_HOSTING.md`.
 
 ## Notes
 
