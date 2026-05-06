@@ -254,7 +254,7 @@ def main():
     )
     parser.add_argument(
         "--bucket",
-        required=True,
+        default = "barrikade-bundles",
         help="GCS bucket name",
     )
     parser.add_argument(
