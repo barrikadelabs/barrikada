@@ -7,13 +7,21 @@ Produces two specialised SentenceTransformer checkpoints:
 
 After training, rebuild signatures so the new encoders are used:
 
-  python scripts/extract_signature_patterns.py
+  python -m core.layer_b.extraction.extract_signature_patterns
+
+Or run from repo root:
+
+  python core/layer_b/extraction/extract_signature_patterns.py
 
 The extraction script and the runtime SignatureEngine will
 automatically detect and load the trained encoders.
 
 Usage:
-  python scripts/train_dual_encoder.py
+  python -m core.layer_b.extraction.train_dual_encoder
+
+Or run from repo root:
+
+  python core/layer_b/extraction/train_dual_encoder.py
 """
 
 import gc
@@ -22,7 +30,7 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 from core.layer_b.extraction.dataset import load_dataset
@@ -60,7 +68,7 @@ def main():
     logging.info("  Signature encoder: %s", sig_path)
     logging.info("")
     logging.info("Next step — rebuild signatures with the trained encoders:")
-    logging.info("  python scripts/extract_signature_patterns.py")
+    logging.info("  python -m core.layer_b.extraction.extract_signature_patterns")
 
 
 if __name__ == "__main__":
