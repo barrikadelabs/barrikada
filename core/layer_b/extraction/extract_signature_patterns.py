@@ -38,7 +38,6 @@ from core.settings import Settings
 log = logging.getLogger(__name__)
 
 DATASET_CSV = Path("datasets/barrikada.csv")
-OUTDIR = Path("core/layer_b/signatures/embeddings")
 
 
 def main():
@@ -49,6 +48,8 @@ def main():
     )
     wall_start = time.perf_counter()
     settings = Settings()
+
+    OUTDIR = Path(settings.layer_b_signatures_dir)
 
     # Load dataset
     texts, labels = load_dataset(DATASET_CSV)

@@ -73,23 +73,22 @@ class Settings(BaseModel):
         return self._user_state_root / "layer_e" / "outputs"
 
     @property
+    def core_models_dir(self) -> str:
+        return self._path_with_override(
+            "BARRIKADA_CORE_MODELS_DIR",
+            self._package_root / "models",
+        )
+
+    @property
     def artifacts_root_dir(self) -> str:
         return self._path_with_override(
             "BARRIKADA_ARTIFACTS_DIR",
             self._user_state_root / "artifacts",
         )
 
-    # ===== MODEL ORGANIZATION (Updated 2026) =====
-    # Models are now centrally managed in core/models/ with the following structure:
-    #   core/models/layer_b/   - Signature engine (FAISS indices, embeddings)
-    #   core/models/layer_c/   - ML Classifier (joblib models)
-    #   core/models/layer_d/   - ModernBERT (HuggingFace format)
-    #   core/models/layer_e/   - LLM Judge (HuggingFace checkpoint)
-    # 
-    # Each layer directory contains current models and archives/ subfolder with versioned backups.
-    # Models are pulled from Google Cloud Storage (GCS) for team access and versioning.
-    # For deployment details, see: docs/MODEL_HOSTING.md
-    # =============================================
+    # Models are centrally managed under `core/models/` (see
+    # `BARRIKADA_CORE_MODELS_DIR` override). For hosting details,
+    # refer to `docs/MODEL_HOSTING.md`.
 
     ### Layer B (embedding-based contrastive signature engine)
     layer_b_embedding_model: str = "BAAI/bge-small-en-v1.5"
@@ -133,6 +132,7 @@ class Settings(BaseModel):
         return self._existing_path_with_override(
             "BARRIKADA_LAYER_B_SIGNATURES_DIR",
             [
+                Path(self.core_models_dir) / "layer_b" / "embeddings",
                 Path(self.artifacts_root_dir) / "layer_b" / "signatures" / "embeddings",
                 self._package_root / "layer_b" / "signatures" / "embeddings",
             ],
@@ -179,9 +179,9 @@ class Settings(BaseModel):
     layer_c_hard_negative_augment_multiplier: int = 1
 
     # Layer C model version selection
-    # "legacy" -> core/layer_c/outputs/classifier.joblib
-    # "latest" -> core/layer_c/outputs/releases/LATEST
-    # other value -> core/layer_c/outputs/releases/<version>/classifier.joblib
+    # Model version selection now maps to `core/models/layer_c/` when
+    # available. Older per-layer `outputs/` locations are accepted as
+    # fallbacks for compatibility.
     layer_c_model_version: str = "legacy"
 
     @property
@@ -195,7 +195,7 @@ class Settings(BaseModel):
     def layer_c_release_dir(self):
         return self._path_with_override(
             "BARRIKADA_LAYER_C_RELEASE_DIR",
-            self._package_root / "layer_c" / "outputs" / "releases",
+            Path(self.core_models_dir) / "layer_c" / "releases",
         )
 
     
@@ -203,6 +203,7 @@ class Settings(BaseModel):
     def model_path(self):
         legacy = self._package_root / "layer_c" / "outputs" / "classifier.joblib"
         candidates = [
+            Path(self.core_models_dir) / "layer_c" / "classifier.joblib",
             Path(self.artifacts_root_dir) / "layer_c" / "outputs" / "classifier.joblib",
             legacy,
         ]
@@ -244,22 +245,22 @@ class Settings(BaseModel):
     layer_d_hard_negative_augment_multiplier: int = 1
 
     # Layer D model version selection
-    # "legacy" -> core/layer_d/outputs/model
-    # "latest" -> core/layer_d/outputs/releases/LATEST
-    # other value -> core/layer_d/outputs/releases/<version>/model
+    # Model version selection maps to `core/models/layer_d/` when present;
+    # per-layer `outputs/` paths are kept as backward-compatible fallbacks.
     layer_d_model_version: str = "legacy"
 
     @property
     def layer_d_release_dir(self):
         return self._path_with_override(
             "BARRIKADA_LAYER_D_RELEASE_DIR",
-            self._package_root / "layer_d" / "outputs" / "releases",
+            Path(self.core_models_dir) / "layer_d" / "releases",
         )
 
     @property
     def layer_d_output_dir(self):
         legacy = self._package_root / "layer_d" / "outputs" / "model"
         candidates = [
+            Path(self.core_models_dir) / "layer_d" / "model",
             Path(self.artifacts_root_dir) / "layer_d" / "outputs" / "model",
             legacy,
         ]
@@ -321,6 +322,6 @@ class Settings(BaseModel):
     def layer_e_teacher_local_model_dir(self):
         return self._path_with_override(
             "BARRIKADA_LAYER_E_TEACHER_LOCAL_MODEL_DIR",
-            Path(self.layer_e_teacher_output_dir) / "merged_teacher",
+            Path(self.core_models_dir) / "layer_e" / "teacher" / "merged_teacher",
         )
 

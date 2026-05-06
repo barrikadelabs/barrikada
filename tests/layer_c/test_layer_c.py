@@ -14,7 +14,7 @@ from core.settings import Settings
 import pandas as pd
 
 ARTIFACTS = {
-    "model_path": "core/layer_c/outputs/classifier.joblib",
+    "model_path": "core/models/layer_c/classifier.joblib",
 }
 
 
