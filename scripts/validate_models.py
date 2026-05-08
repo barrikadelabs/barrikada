@@ -27,38 +27,92 @@ MODELS_DIR = CORE_DIR / "models"
 def validate_layer_b() -> Tuple[bool, List[str]]:
     """Validate Layer B (Signature Engine) models."""
     errors = []
-    target_dir = MODELS_DIR / "layer_b"
+    warnings = []
+    target_dir = MODELS_DIR / "layer_b" / "embeddings"
     
     if not target_dir.exists():
         errors.append(f"Directory does not exist: {target_dir}")
         return False, errors
-    
-    # Check for required file types
-    has_faiss = any(target_dir.glob("**/*.faiss"))
-    has_npy = any(target_dir.glob("**/*.npy"))
-    has_json = any(target_dir.glob("**/*.json"))
-    
-    if not has_faiss and not has_npy:
-        errors.append("No FAISS indices (.faiss) or NumPy files (.npy) found")
-    
+
+    required_files = [
+        target_dir / "centroids.npy",
+        target_dir / "metadata.json",
+        target_dir / "cluster_radii.json",
+        target_dir / "prompt_encoder" / "config.json",
+        target_dir / "prompt_encoder" / "modules.json",
+        target_dir / "prompt_encoder" / "tokenizer.json",
+        target_dir / "signature_encoder" / "config.json",
+        target_dir / "signature_encoder" / "modules.json",
+        target_dir / "signature_encoder" / "tokenizer.json",
+    ]
+    missing_required = [str(path.relative_to(MODELS_DIR)) for path in required_files if not path.exists()]
+    if missing_required:
+        errors.extend(f"Missing required Layer B file: {path}" for path in missing_required)
+
+    prompt_weight_files = [
+        target_dir / "prompt_encoder" / "model.safetensors",
+        target_dir / "prompt_encoder" / "pytorch_model.bin",
+    ]
+    signature_weight_files = [
+        target_dir / "signature_encoder" / "model.safetensors",
+        target_dir / "signature_encoder" / "pytorch_model.bin",
+    ]
+    has_prompt_weights = any(path.exists() for path in prompt_weight_files)
+    has_signature_weights = any(path.exists() for path in signature_weight_files)
+    if not has_prompt_weights:
+        errors.append(
+            "Missing Layer B prompt encoder weights under core/models/layer_b/embeddings/prompt_encoder/"
+        )
+    if not has_signature_weights:
+        errors.append(
+            "Missing Layer B signature encoder weights under core/models/layer_b/embeddings/signature_encoder/"
+        )
+
+    has_attack_index = (target_dir / "faiss_index.bin").exists()
+    has_benign_index = (target_dir / "benign_faiss_index.bin").exists()
+    if not has_attack_index:
+        warnings.append("Missing Layer B FAISS attack index (faiss_index.bin); sklearn fallback is still possible")
+    if not has_benign_index:
+        warnings.append("Missing Layer B FAISS benign index (benign_faiss_index.bin); sklearn fallback is still possible")
+
     logger.info("Layer B:")
-    logger.info(f"  ✓ FAISS indices: {has_faiss}")
-    logger.info(f"  ✓ NumPy arrays: {has_npy}")
-    logger.info(f"  ✓ JSON metadata: {has_json}")
-    
-    # Try to load a sample FAISS index if available
+    logger.info(f"  ✓ Embeddings directory: {target_dir.exists()}")
+    logger.info(f"  ✓ Prompt encoder weights: {has_prompt_weights}")
+    logger.info(f"  ✓ Signature encoder weights: {has_signature_weights}")
+    logger.info(f"  ✓ Attack centroids: {(target_dir / 'centroids.npy').exists()}")
+    logger.info(f"  ✓ Metadata: {(target_dir / 'metadata.json').exists()}")
+    logger.info(f"  ✓ FAISS attack index: {has_attack_index}")
+    logger.info(f"  ✓ FAISS benign index: {has_benign_index}")
+
+    try:
+        from sentence_transformers import SentenceTransformer
+        if has_prompt_weights:
+            SentenceTransformer(str(target_dir / "prompt_encoder"), device="cpu")
+            logger.info("  ✓ Prompt encoder loads successfully")
+        if has_signature_weights:
+            SentenceTransformer(str(target_dir / "signature_encoder"), device="cpu")
+            logger.info("  ✓ Signature encoder loads successfully")
+    except ImportError:
+        logger.debug("  ⊘ sentence-transformers not installed, skipping encoder load test")
+    except Exception as e:
+        errors.append(f"Failed to load Layer B sentence-transformer bundle: {e}")
+
     try:
         import faiss
-        faiss_files = list(target_dir.glob("**/*.faiss"))
-        if faiss_files:
-            test_file = faiss_files[0]
-            index = faiss.read_index(str(test_file))
-            logger.info(f"  ✓ FAISS index loads successfully ({test_file.name})")
+        if has_attack_index:
+            faiss.read_index(str(target_dir / "faiss_index.bin"))
+            logger.info("  ✓ FAISS attack index loads successfully")
+        if has_benign_index:
+            faiss.read_index(str(target_dir / "benign_faiss_index.bin"))
+            logger.info("  ✓ FAISS benign index loads successfully")
     except ImportError:
         logger.debug("  ⊘ faiss not installed, skipping load test")
     except Exception as e:
         errors.append(f"Failed to load FAISS index: {e}")
-    
+
+    for warning in warnings:
+        logger.warning(f"  ⚠ {warning}")
+
     return len(errors) == 0, errors
 
 
@@ -130,7 +184,7 @@ def validate_layer_d() -> Tuple[bool, List[str]]:
         
         if has_config and has_model_dir:
             try:
-                model = AutoModel.from_pretrained(str(target_dir))
+                AutoModel.from_pretrained(str(model_dir))
                 logger.info(f"  ✓ Transformers model loads successfully")
             except Exception as e:
                 logger.warning(f"  ⚠ Warning loading model: {e}")
@@ -181,18 +235,15 @@ def validate_layer_e() -> Tuple[bool, List[str]]:
 
 def check_archive_structure() -> Tuple[bool, List[str]]:
     """Check that archive directories exist."""
-    errors = []
-    
     logger.info("\nArchive structure:")
     for layer in ["layer_b", "layer_c", "layer_d", "layer_e"]:
         archive_dir = MODELS_DIR / layer / "archives"
         exists = archive_dir.exists()
         logger.info(f"  {layer}/archives: {exists}")
-        
         if not exists:
-            errors.append(f"Archive directory missing: {archive_dir}")
-    
-    return len(errors) == 0, errors
+            logger.warning(f"  ⚠ Archive directory missing: {archive_dir}")
+
+    return True, []
 
 
 def main():

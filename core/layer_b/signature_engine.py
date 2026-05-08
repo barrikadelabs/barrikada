@@ -25,15 +25,49 @@ class SignatureEngine:
         self._load_signatures()
 
     #init
-    def _load_model(self):
-        # Use trained prompt encoder if available, else base model
+    @staticmethod
+    def _is_sentence_transformer_dir_ready(model_dir: Path) -> bool:
+        required_files = [
+            model_dir / "config.json",
+            model_dir / "modules.json",
+            model_dir / "tokenizer.json",
+        ]
+        weight_files = [
+            model_dir / "model.safetensors",
+            model_dir / "pytorch_model.bin",
+        ]
+        return all(path.exists() for path in required_files) and any(
+            path.exists() for path in weight_files
+        )
+
+    def _resolve_prompt_encoder_model(self) -> str:
         prompt_encoder_path = Path(self.settings.layer_b_signatures_dir) / "prompt_encoder"
-        if prompt_encoder_path.exists():
-            model_name = str(prompt_encoder_path)
+        if not prompt_encoder_path.exists():
+            log.info("Loading base embedding model: %s", self.settings.layer_b_embedding_model)
+            return self.settings.layer_b_embedding_model
+
+        if self._is_sentence_transformer_dir_ready(prompt_encoder_path):
             log.info("Loading trained prompt encoder: %s", prompt_encoder_path)
-        else:
-            model_name = self.settings.layer_b_embedding_model
-            log.info("Loading base embedding model: %s", model_name)
+            return str(prompt_encoder_path)
+
+        missing = []
+        for file_name in ["config.json", "modules.json", "tokenizer.json", "model.safetensors|pytorch_model.bin"]:
+            if file_name == "model.safetensors|pytorch_model.bin":
+                if not any((prompt_encoder_path / name).exists() for name in ["model.safetensors", "pytorch_model.bin"]):
+                    missing.append(file_name)
+            elif not (prompt_encoder_path / file_name).exists():
+                missing.append(file_name)
+        log.warning(
+            "Prompt encoder directory exists but is incomplete at %s; missing %s. "
+            "Falling back to base embedding model %s.",
+            prompt_encoder_path,
+            ", ".join(missing) if missing else "required files",
+            self.settings.layer_b_embedding_model,
+        )
+        return self.settings.layer_b_embedding_model
+
+    def _load_model(self):
+        model_name = self._resolve_prompt_encoder_model()
         device = self._select_device()
         log.info("Layer B encoder device: %s", device)
         self.model = SentenceTransformer(model_name, device=device)

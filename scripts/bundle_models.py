@@ -32,7 +32,15 @@ LAYER_CONFIGS = {
     "layer_b": {
         "outputs_dir": CORE_DIR / "layer_b" / "signatures",
         "target_dir": MODELS_DIR / "layer_b",
-        "required_patterns": ["*.faiss", "*.npy", "*.json"],
+        "required_patterns": [
+            "embeddings/",
+            "extracted/",
+            "*.bin",
+            "*.npy",
+            "*.json",
+            "*.safetensors",
+            "*.md",
+        ],
         "description": "Signature Engine (FAISS indices, embeddings)",
     },
     "layer_c": {
