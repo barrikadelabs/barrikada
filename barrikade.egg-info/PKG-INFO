@@ -1,3 +1,40 @@
+Metadata-Version: 2.4
+Name: barrikade
+Version: 0.1.0
+Summary: Runtime prompt-injection detection for AI agents.
+Author: Barrikade
+License: MIT
+Project-URL: Homepage, https://github.com/barrikade-ai/barrikade
+Project-URL: Repository, https://github.com/barrikade-ai/barrikade
+Project-URL: Issues, https://github.com/barrikade-ai/barrikade/issues
+Keywords: ai,llm,security,prompt-injection,agents
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Security
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: confusable-homoglyphs>=3.3.1
+Requires-Dist: faiss-cpu>=1.13.0
+Requires-Dist: ftfy>=6.3.1
+Requires-Dist: google-cloud-storage>=2.10.0
+Requires-Dist: joblib>=1.5.0
+Requires-Dist: numpy>=2.3.0
+Requires-Dist: pydantic>=2.12.0
+Requires-Dist: requests>=2.32.0
+Requires-Dist: scikit-learn>=1.7.0
+Requires-Dist: sentence-transformers>=5.3.0
+Requires-Dist: torch>=2.9.0
+Requires-Dist: transformers>=4.57.0
+Requires-Dist: xgboost>=3.1.0
+Dynamic: license-file
+
 # Barrikada
 
 Barrikada is the open-source core for Barrikade, the runtime security layer for autonomous AI agents. Detect prompt injection and unsafe behavior in real time.

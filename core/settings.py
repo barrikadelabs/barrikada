@@ -131,13 +131,21 @@ class Settings(BaseModel):
     def layer_b_signatures_dir(self):
         return self._existing_path_with_override(
             "BARRIKADA_LAYER_B_SIGNATURES_DIR",
-            [
-                Path(self.core_models_dir) / "layer_b" / "embeddings",
-                Path(self.artifacts_root_dir) / "layer_b" / "signatures" / "embeddings",
-                self._package_root / "layer_b" / "signatures" / "embeddings",
-            ],
+            self.layer_b_signatures_candidates,
             "Layer B signatures directory",
         )
+
+    @property
+    def layer_b_signatures_candidates(self) -> list[Path]:
+        return [
+            Path(self.core_models_dir) / "layer_b" / "embeddings",
+            Path(self.artifacts_root_dir) / "layer_b" / "embeddings",
+            self._package_root / "layer_b" / "signatures" / "embeddings",
+        ]
+
+    @property
+    def layer_b_signatures_dirname(self) -> str:
+        return str(Path(self.artifacts_root_dir) / "layer_b" / "embeddings")
     
 
     ### Layer C
@@ -202,16 +210,24 @@ class Settings(BaseModel):
     @property
     def model_path(self):
         legacy = self._package_root / "layer_c" / "outputs" / "classifier.joblib"
-        candidates = [
-            Path(self.core_models_dir) / "layer_c" / "classifier.joblib",
-            Path(self.artifacts_root_dir) / "layer_c" / "outputs" / "classifier.joblib",
-            legacy,
-        ]
         return self._existing_path_with_override(
             "BARRIKADA_LAYER_C_MODEL_PATH",
-            candidates,
+            self.layer_c_model_candidates,
             "Layer C classifier model",
         )
+
+    @property
+    def layer_c_model_candidates(self) -> list[Path]:
+        legacy = self._package_root / "layer_c" / "outputs" / "classifier.joblib"
+        return [
+            Path(self.core_models_dir) / "layer_c" / "classifier.joblib",
+            Path(self.artifacts_root_dir) / "layer_c" / "classifier.joblib",
+            legacy,
+        ]
+
+    @property
+    def layer_c_model_pathname(self) -> str:
+        return str(Path(self.artifacts_root_dir) / "layer_c" / "classifier.joblib")
 
     ### Layer D (ModernBERT classifier)
     layer_d_model_id: str = "answerdotai/ModernBERT-large"
@@ -259,16 +275,24 @@ class Settings(BaseModel):
     @property
     def layer_d_output_dir(self):
         legacy = self._package_root / "layer_d" / "outputs" / "model"
-        candidates = [
-            Path(self.core_models_dir) / "layer_d" / "model",
-            Path(self.artifacts_root_dir) / "layer_d" / "outputs" / "model",
-            legacy,
-        ]
         return self._existing_path_with_override(
             "BARRIKADA_LAYER_D_MODEL_DIR",
-            candidates,
+            self.layer_d_model_candidates,
             "Layer D model directory",
         )
+
+    @property
+    def layer_d_model_candidates(self) -> list[Path]:
+        legacy = self._package_root / "layer_d" / "outputs" / "model"
+        return [
+            Path(self.core_models_dir) / "layer_d" / "model",
+            Path(self.artifacts_root_dir) / "layer_d" / "model",
+            legacy,
+        ]
+
+    @property
+    def layer_d_model_dirname(self) -> str:
+        return str(Path(self.artifacts_root_dir) / "layer_d" / "model")
 
     @property
     def layer_d_report_path(self):
@@ -320,7 +344,19 @@ class Settings(BaseModel):
 
     @property
     def layer_e_model_dir(self):
-        return self._path_with_override(
+        return self._existing_path_with_override(
             "BARRIKADA_LAYER_E_MODEL_DIR",
-            Path(self.core_models_dir) / "layer_e" / "qwen3guard-barrikade",
+            self.layer_e_model_candidates,
+            "Layer E model directory",
         )
+
+    @property
+    def layer_e_model_dirname(self) -> str:
+        return str(Path(self.artifacts_root_dir) / "layer_e" / "qwen3guard-barrikade")
+
+    @property
+    def layer_e_model_candidates(self) -> list[Path]:
+        return [
+            Path(self.core_models_dir) / "layer_e" / "qwen3guard-barrikade",
+            Path(self.artifacts_root_dir) / "layer_e" / "qwen3guard-barrikade",
+        ]

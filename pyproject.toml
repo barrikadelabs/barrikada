@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "barrikade"
+version = "0.1.0"
+description = "Runtime prompt-injection detection for AI agents."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Barrikade" }
+]
+dependencies = [
+  "confusable-homoglyphs>=3.3.1",
+  "faiss-cpu>=1.13.0",
+  "ftfy>=6.3.1",
+  "google-cloud-storage>=2.10.0",
+  "joblib>=1.5.0",
+  "numpy>=2.3.0",
+  "pydantic>=2.12.0",
+  "requests>=2.32.0",
+  "scikit-learn>=1.7.0",
+  "sentence-transformers>=5.3.0",
+  "torch>=2.9.0",
+  "transformers>=4.57.0",
+  "xgboost>=3.1.0",
+]
+keywords = ["ai", "llm", "security", "prompt-injection", "agents"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/barrikade-ai/barrikade"
+Repository = "https://github.com/barrikade-ai/barrikade"
+Issues = "https://github.com/barrikade-ai/barrikade/issues"
+
+[project.scripts]
+barrikade = "barrikade.__main__:main"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["barrikade", "core", "core.*", "models", "models.*"]
+exclude = ["tests", "tests.*", "docs", "docs.*", "examples", "examples.*", "demos", "demos.*"]
+

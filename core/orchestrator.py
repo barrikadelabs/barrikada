@@ -2,6 +2,7 @@ import hashlib
 import logging
 import time
 
+from core.artifacts import ensure_runtime_artifacts
 from core.settings import Settings
 from models.PipelineResult import PipelineResult
 
@@ -13,6 +14,8 @@ log = logging.getLogger(__name__)
 
 class PIPipeline:
     def __init__(self):
+        ensure_runtime_artifacts()
+
         from core.layer_a.pipeline import analyze_text
         from core.layer_b.signature_engine import SignatureEngine
         from core.layer_c.classifier import Classifier
