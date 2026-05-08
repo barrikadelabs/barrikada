@@ -105,7 +105,7 @@ def evaluate_classifier(classifier, texts, labels):
 
 
 def test_layer_d():
-    test_texts, true_labels = load_test_data("datasets/barrikada_test.csv")
+    test_texts, true_labels = load_test_data("datasets/barrikade_test.csv")
 
     low, high, model_dir = load_trained_thresholds_and_model_dir()
     classifier = LayerDClassifier(model_dir=model_dir, low=low, high=high)

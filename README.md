@@ -42,7 +42,7 @@ Barrikada now supports an API-first container runtime for request-level detectio
 Build the production image:
 
 ```bash
-docker build --target production -t barrikada/api:latest .
+docker build --target production -t barrikade/api:latest .
 ```
 
 Run the API locally with docker compose:

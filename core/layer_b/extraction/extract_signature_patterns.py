@@ -9,7 +9,7 @@ Produces:
     cluster_radii.json     — per-cluster radius for radius filtering
     metadata.json          — build metadata
 
-Dataset: datasets/barrikada.csv  (columns: text, label  — 0=safe, 1=malicious)
+Dataset: datasets/barrikade.csv  (columns: text, label  — 0=safe, 1=malicious)
 """
 
 import gc
@@ -37,7 +37,7 @@ from core.settings import Settings
 
 log = logging.getLogger(__name__)
 
-DATASET_CSV = Path("datasets/barrikada.csv")
+DATASET_CSV = Path("datasets/barrikade.csv")
 
 
 def main():

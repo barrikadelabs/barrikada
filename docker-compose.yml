@@ -1,21 +1,21 @@
 services:
-  barrikada-api:
+  barrikade-api:
     build:
       context: .
       dockerfile: Dockerfile
       target: production
-    image: barrikada/api:latest
-    container_name: barrikada-api
+    image: barrikade/api:latest
+    container_name: barrikade-api
     environment:
       BARRIKADA_GCS_BUCKET: ${BARRIKADA_GCS_BUCKET:-barrikade-bundles}
-      HF_HOME: /home/barrikada/.cache/huggingface
-      HUGGINGFACE_HUB_CACHE: /home/barrikada/.cache/huggingface/hub
-      SENTENCE_TRANSFORMERS_HOME: /home/barrikada/.cache/sentence_transformers
+      HF_HOME: /home/barrikade/.cache/huggingface
+      HUGGINGFACE_HUB_CACHE: /home/barrikade/.cache/huggingface/hub
+      SENTENCE_TRANSFORMERS_HOME: /home/barrikade/.cache/sentence_transformers
     ports:
       - "8000:8000"
     volumes:
-      - hf_cache_user:/home/barrikada/.cache/huggingface
-      - st_cache_user:/home/barrikada/.cache/sentence_transformers
+      - hf_cache_user:/home/barrikade/.cache/huggingface
+      - st_cache_user:/home/barrikade/.cache/sentence_transformers
 
 volumes:
   hf_cache_user:

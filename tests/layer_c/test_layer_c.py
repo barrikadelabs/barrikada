@@ -131,7 +131,7 @@ def evaluate_classifier(classifier, texts, labels):
 
 
 def test_layer_c():
-    test_texts, true_labels = load_test_data("datasets/barrikada_test.csv")
+    test_texts, true_labels = load_test_data("datasets/barrikade_test.csv")
     
     # Use manual thresholds from settings.
     low, high = load_thresholds()

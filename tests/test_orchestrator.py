@@ -14,7 +14,7 @@ def test_pipeline():
     correct = 0
     results = []  # Store results for CSV export
 
-    test_case_df = pd.read_csv("datasets/barrikada_test.csv")
+    test_case_df = pd.read_csv("datasets/barrikade_test.csv")
 
     for _, row in test_case_df.iterrows():
         test_cases.append(

@@ -16,7 +16,7 @@ from core.layer_b.signature_engine import SignatureEngine
 
 def test_layer_b():
     
-    df = pd.read_csv("datasets/barrikada_test.csv")
+    df = pd.read_csv("datasets/barrikade_test.csv")
     
     print(f"Testing Layer B on {len(df)} samples...")
     layer_b = SignatureEngine()

@@ -8,7 +8,7 @@ from core.orchestrator import PIPipeline
 
 
 def run_full_pipeline_pass():
-    df = pd.read_csv("datasets/barrikada_test.csv")
+    df = pd.read_csv("datasets/barrikade_test.csv")
     pipeline = PIPipeline()
     results = []
 

@@ -20,7 +20,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "csv",
         nargs="?",
-        default="datasets/barrikada_test.csv",
+        default="datasets/barrikade_test.csv",
         help="CSV path used by eval mode.",
     )
     parser.add_argument(

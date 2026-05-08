@@ -106,7 +106,7 @@ def evaluate_judge(judge, texts, labels):
 
 
 def test_layer_e():
-    test_texts, true_labels = load_test_data("datasets/barrikada_test.csv")
+    test_texts, true_labels = load_test_data("datasets/barrikade_test.csv")
     judge = build_judge()
     metrics = evaluate_judge(judge, test_texts, true_labels)
     assert metrics["total"] == len(test_texts)

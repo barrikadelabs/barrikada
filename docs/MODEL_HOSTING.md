@@ -39,11 +39,11 @@ core/models/
 
 ```bash
 export PROJECT_ID=my-gcp-project
-export BUCKET_NAME=barrikada-models
+export BUCKET_NAME=barrikade-models
 
 gsutil mb gs://$BUCKET_NAME
 gsutil versioning set on gs://$BUCKET_NAME  # optional: enable versioning
-gsutil logging set on -b gs://barrikada-logs -o model-uploads gs://$BUCKET_NAME  # optional: logs
+gsutil logging set on -b gs://barrikade-logs -o model-uploads gs://$BUCKET_NAME  # optional: logs
 ``'
 
 ### 2. Local Development Setup
@@ -77,7 +77,7 @@ python scripts/validate_models.py --verbose
 
 **Prerequisites for uploading**:
 - Service account credentials with write access (created above)
-- Credentials set: `export GOOGLE_APPLICATION_CREDENTIALS=~/.gcp/barrikada-credentials.json`
+- Credentials set: `export GOOGLE_APPLICATION_CREDENTIALS=~/.gcp/barrikade-credentials.json`
 
 **Bundle any new models** from layer outputs:
 
@@ -132,10 +132,10 @@ python -c "from core.orchestrator import PIPipeline; p = PIPipeline()"
 python scripts/bundle_models.py --archive-old
 
 # Upload to GCS
-python scripts/gcs_upload.py --bucket barrikada-models
+python scripts/gcs_upload.py --bucket barrikade-models
 
 # Other team members can now download:
-python scripts/gcs_download.py --bucket barrikada-models
+python scripts/gcs_download.py --bucket barrikade-models
 ```
 
 ### Workflow 3: Revert to Previous Model Version
@@ -144,15 +144,15 @@ Models are automatically archived when new versions are uploaded. To use an olde
 
 ```bash
 # List available archived versions locally
-python scripts/model_status.py --bucket barrikada-models
+python scripts/model_status.py --bucket barrikade-models
 
 # Download specific archived version (from GCS archives)
 python scripts/gcs_download.py \
-    --bucket barrikada-models \
+    --bucket barrikade-models \
     --version archives \
     --layers layer_c
 
-# This downloads from gs://barrikada-models/models/layer_c/archives/
+# This downloads from gs://barrikade-models/models/layer_c/archives/
 ```
 
 ### Workflow 4: Monitor Model Status
@@ -160,7 +160,7 @@ python scripts/gcs_download.py \
 Compare local vs. GCS models:
 
 ```bash
-python scripts/model_status.py --bucket barrikada-models
+python scripts/model_status.py --bucket barrikade-models
 
 # Output:
 # Layer B: 5 files locally, 5 files in GCS, in sync ✓
@@ -181,14 +181,14 @@ python scripts/cleanup_archives.py --keep 3 --local
 python scripts/cleanup_archives.py \
     --keep 3 \
     --gcs \
-    --bucket barrikada-models \
+    --bucket barrikade-models \
     --dry-run  # Preview what would be deleted
 
 # Actually delete
 python scripts/cleanup_archives.py \
     --keep 3 \
     --gcs \
-    --bucket barrikada-models
+    --bucket barrikade-models
 ```
 
 ## Docker Deployment
@@ -199,9 +199,9 @@ Optionally set the public GCS bucket name override (no credentials needed):
 
 ```yaml
 services:
-    barrikada-api:
+    barrikade-api:
         environment:
-            BARRIKADA_GCS_BUCKET: barrikada-models
+            BARRIKADA_GCS_BUCKET: barrikade-models
 ```
 
 ### Startup Process
@@ -221,7 +221,7 @@ When the container starts:
 ```bash
 docker compose build
 
-docker compose run barrikada-api
+docker compose run barrikade-api
 ```
 
 ### Local Development with Docker
@@ -229,13 +229,13 @@ docker compose run barrikada-api
 Mount local models to skip GCS download:
 
 ```bash
-docker compose run -v $(pwd)/core/models:/app/core/models:ro barrikada-api
+docker compose run -v $(pwd)/core/models:/app/core/models:ro barrikade-api
 ```
 
 Or override the public GCS bucket explicitly:
 
 ```bash
-docker compose run -e BARRIKADA_GCS_BUCKET=barrikada-models barrikada-api
+docker compose run -e BARRIKADA_GCS_BUCKET=barrikade-models barrikade-api
 ```
 
 ## Command Reference
@@ -386,8 +386,8 @@ python scripts/cleanup_archives.py \
 **Fix**:
 1. Verify bucket is publicly readable: `gsutil iam get gs://$BARRIKADA_GCS_BUCKET | grep allUsers`
 2. Check bucket contents: `gsutil ls gs://$BARRIKADA_GCS_BUCKET/models/`
-3. Check container logs: `docker-compose logs barrikada-api`
-4. Test download manually: `python scripts/gcs_download.py --bucket barrikada-models`
+3. Check container logs: `docker-compose logs barrikade-api`
+4. Test download manually: `python scripts/gcs_download.py --bucket barrikade-models`
 5. Mount models locally: `docker-compose run -v $(pwd)/core/models:/app/core/models`
 
 ### "Access Denied" error
@@ -413,7 +413,7 @@ gsutil iam get gs://$BUCKET_NAME | grep allUsers
 rm -rf core/models/layer_*/*.joblib core/models/layer_*/model core/models/layer_e/qwen3guard-barrikade core/models/layer_*/teacher
 
 # Re-download with validation
-python scripts/gcs_download.py --bucket barrikada-models --validate
+python scripts/gcs_download.py --bucket barrikade-models --validate
 
 # Check validation
 python scripts/validate_models.py --verbose
@@ -426,11 +426,11 @@ python scripts/validate_models.py --verbose
 **Fix**:
 ```bash
 # Force re-download by backing up existing models
-python scripts/gcs_download.py --bucket barrikada-models --archive-old
+python scripts/gcs_download.py --bucket barrikade-models --archive-old
 
 # Or delete and download fresh
 rm -rf core/models
-python scripts/gcs_download.py --bucket barrikada-models
+python scripts/gcs_download.py --bucket barrikade-models
 ```
 
 ## Environment Variables Reference
@@ -448,7 +448,7 @@ python scripts/gcs_download.py --bucket barrikada-models
 
 1. **Archive cleanup**: Keep only recent versions
    ```bash
-   python scripts/cleanup_archives.py --keep 2 --gcs --bucket barrikada-models
+   python scripts/cleanup_archives.py --keep 2 --gcs --bucket barrikade-models
    ```
 
 2. **Object lifecycle**: Configure GCS lifecycle policy to delete old backups
@@ -476,7 +476,7 @@ python scripts/gcs_download.py --bucket barrikada-models
 1. **Service Account Permissions**: Restrict to storage.objectAdmin on specific bucket
    ```bash
    gcloud projects add-iam-policy-binding $PROJECT_ID \
-       --member=serviceAccount:barrikada-models@$PROJECT_ID.iam.gserviceaccount.com \
+       --member=serviceAccount:barrikade-models@$PROJECT_ID.iam.gserviceaccount.com \
        --role=roles/storage.objectViewer  # Read-only if downloads only
    ```
 
@@ -492,7 +492,7 @@ python scripts/gcs_download.py --bucket barrikada-models
 
 ```bash
 gsutil uniformbucketlevelaccess set on gs://$BUCKET_NAME
-gsutil logging set on -b gs://barrikada-logs gs://$BUCKET_NAME
+gsutil logging set on -b gs://barrikade-logs gs://$BUCKET_NAME
 ```
 
 ## FAQ
@@ -507,7 +507,7 @@ A: After training a new model or when distributing new versions to the team. Can
 A: No. Runtime loading code unchanged. Models are always read from `core/models/` locally.
 
 **Q: How much storage do models use?**  
-A: Check with `python scripts/model_status.py --bucket barrikada-models`
+A: Check with `python scripts/model_status.py --bucket barrikade-models`
 
 **Q: Can multiple team members upload simultaneously?**  
 A: Yes, but only one upload per layer at a time to avoid conflicts. GCS handles concurrent reads safely.

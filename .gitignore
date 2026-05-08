@@ -1,8 +1,7 @@
 /build/
 /dist/
-/barrikada.egg-info/
 /artifact-manifest.json
-
+/datasets/
 /test_results/
 
 # Externalized runtime artifacts

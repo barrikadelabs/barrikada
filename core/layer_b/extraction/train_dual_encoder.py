@@ -37,7 +37,7 @@ from core.layer_b.extraction.dataset import load_dataset
 from core.layer_b.extraction.dual_encoder_trainer import train_dual_encoder
 from core.settings import Settings
 
-DATASET_CSV = Path("datasets/barrikada.csv")
+DATASET_CSV = Path("datasets/barrikade.csv")
 
 
 def main():

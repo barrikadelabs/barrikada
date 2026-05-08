@@ -427,7 +427,7 @@ def main() -> None:
         <div class='gg-header'>
             <div>
                 <div class='headline'>Hack the <span>AI</span></div>
-                <div class='subhead'>// prompt injection shield - powered by barrikada</div>
+                <div class='subhead'>// prompt injection shield - powered by barrikade</div>
             </div>
             <div class='status-pill'><span class='status-dot'></span>agent online</div>
         </div>

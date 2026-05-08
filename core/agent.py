@@ -63,7 +63,7 @@ class BarrikadaAgent:
         scan = self.pipeline.detect(question)
 
         result = {
-            "barrikada_verdict": scan.final_verdict.value,
+            "barrikade_verdict": scan.final_verdict.value,
             "decision_layer": scan.decision_layer.value,
             "confidence": scan.confidence_score,
             "pipeline_time_ms": scan.total_processing_time_ms,
@@ -98,7 +98,7 @@ def _resolve_project_root() -> Path:
 
 
 def evaluate(
-    csv_path: str = "datasets/barrikada_test.csv",
+    csv_path: str = "datasets/barrikade_test.csv",
     model_name: str = DEFAULT_MODEL_NAME,
     max_samples: int | None = None,
 ):
@@ -125,7 +125,7 @@ def evaluate(
         text, label = row["text"], int(row["label"])
         out = agent.invoke(text)
 
-        predicted_block = out["barrikada_verdict"] == "block"
+        predicted_block = out["barrikade_verdict"] == "block"
         is_malicious = label == 1
         is_correct = predicted_block == is_malicious
 
@@ -138,7 +138,7 @@ def evaluate(
             {
                 "text": text,
                 "true_label": label,
-                "barrikada_verdict": out["barrikada_verdict"],
+                "barrikade_verdict": out["barrikade_verdict"],
                 "decision_layer": out["decision_layer"],
                 "confidence": out["confidence"],
                 "pipeline_time_ms": out["pipeline_time_ms"],
@@ -150,7 +150,7 @@ def evaluate(
         tag = "PASS" if is_correct else "FAIL"
         print(
             f"[{i}/{len(df)}] {tag:4s}  "
-            f"verdict={out['barrikada_verdict']:5s}  "
+            f"verdict={out['barrikade_verdict']:5s}  "
             f"layer={out['decision_layer']}  "
             f"conf={out['confidence']:.2f}  "
             f"time={out['pipeline_time_ms']:.1f}ms  "
@@ -210,7 +210,7 @@ def interactive(model_name: str = DEFAULT_MODEL_NAME) -> None:
 
             out = agent.invoke(question)
             print(
-                f"[{out['barrikada_verdict'].upper()} | "
+                f"[{out['barrikade_verdict'].upper()} | "
                 f"layer {out['decision_layer']} | "
                 f"{out['pipeline_time_ms']:.1f}ms]"
             )

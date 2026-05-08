@@ -8,7 +8,7 @@ class Settings(BaseModel):
     # Package root works for both editable and wheel installs.
     _package_root = Path(__file__).resolve().parent
     _repo_root = _package_root.parent
-    _user_state_root = Path.home() / ".barrikada"
+    _user_state_root = Path.home() / ".barrikade"
 
     @staticmethod
     def _env_path(env_var):
@@ -94,7 +94,7 @@ class Settings(BaseModel):
     layer_b_embedding_model: str = "BAAI/bge-small-en-v1.5"
 
     # Two-threshold decision system (applied to mean top-k attack similarity)
-    # Empirically calibrated on barrikada_test.csv (block_prec=0.96, fblk=0.53%)
+    # Empirically calibrated on barrikade_test.csv (block_prec=0.96, fblk=0.53%)
     layer_b_block_threshold: float = 0.86   # sweep-calibrated conservative block threshold
     layer_b_flag_threshold: float = 0.62    # sweep-calibrated conservative flag threshold
     # Below flag_threshold → SAFE (allow)
@@ -189,7 +189,7 @@ class Settings(BaseModel):
         override = self._env_path("BARRIKADA_DATASET_PATH")
         if override is not None:
             return str(override)
-        return str(self._repo_root / "datasets" / "barrikada.csv")
+        return str(self._repo_root / "datasets" / "barrikade.csv")
 
     @property
     def layer_c_release_dir(self):

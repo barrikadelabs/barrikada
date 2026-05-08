@@ -13,14 +13,14 @@ This repository ships an API-first production container for Barrikada detection.
 ## Build
 
 ```bash
-docker build --target production -t barrikada/api:latest .
+docker build --target production -t barrikade/api:latest .
 ```
 
 ## Run
 
 ```bash
 docker run --rm -p 8000:8000 \
-  barrikada/api:latest
+  barrikade/api:latest
 ```
 
 By default the container downloads runtime models from the public
@@ -31,7 +31,7 @@ To override the bucket:
 ```bash
 docker run --rm -p 8000:8000 \
   -e BARRIKADA_GCS_BUCKET=<public-gcs-bucket> \
-  barrikada/api:latest
+  barrikade/api:latest
 ```
 
 To use local models instead of GCS, mount them at `/app/core/models`.
@@ -45,7 +45,7 @@ docker compose up --build
 ```
 
 `docker-compose.yml` starts:
-- `barrikada-api`
+- `barrikade-api`
 
 ## API Contract
 
@@ -97,4 +97,4 @@ For offline deployment or custom model sources, see `docs/MODEL_HOSTING.md`.
 
 - Container uses `requirements.runtime.txt` to avoid shipping training/notebook/test dependencies in production image.
 - Container runs as non-root user (`uid=1000`) for safer production defaults.
-- Cache volumes are mounted under `/home/barrikada/.cache/*` to keep write permissions aligned with non-root runtime.
+- Cache volumes are mounted under `/home/barrikade/.cache/*` to keep write permissions aligned with non-root runtime.
