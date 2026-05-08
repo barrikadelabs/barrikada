@@ -21,7 +21,18 @@ Barrikada helps detect and route these attacks at runtime through a cost-aware, 
 ## 30-second quick start
 
 ```bash
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
+```
+
+Download model artifacts:
+```bash
+python scripts/gcs_download.py --bucket barrikade-bundles
+```
+
+Run the quickstart:
+```bash
 python examples/quickstart.py
 ```
 
