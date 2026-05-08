@@ -34,7 +34,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "model",
         nargs="?",
         default=DEFAULT_MODEL_NAME,
-        help="Local teacher checkpoint path for agent responses.",
+        help="Local model path for agent responses.",
     )
     return parser
 

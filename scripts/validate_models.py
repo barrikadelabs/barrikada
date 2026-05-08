@@ -149,30 +149,30 @@ def validate_layer_e() -> Tuple[bool, List[str]]:
         errors.append(f"Directory does not exist: {target_dir}")
         return False, errors
     
-    # Check for teacher model structure
-    teacher_dir = target_dir / "teacher"
-    has_teacher = teacher_dir.exists()
+    qwen3guard_dir = target_dir / "qwen3guard-barrikade"
+    model_dir = qwen3guard_dir
+    has_model_dir = model_dir.exists()
     
     # Check for config files
     config_files = list(target_dir.glob("**/*.json"))
-    
+
     logger.info("Layer E:")
-    logger.info(f"  ✓ Teacher directory: {has_teacher}")
+    logger.info(f"  ✓ Qwen3Guard directory: {qwen3guard_dir.exists()}")
     logger.info(f"  ✓ Config files: {len(config_files)}")
+
+    if not has_model_dir and not config_files:
+        errors.append("Qwen3Guard bundle not found")
     
-    if not has_teacher and not config_files:
-        errors.append("Neither teacher directory nor config files found")
-    
-    # Try to load teacher model if available
+    # Try to load Layer E model if available
     try:
         from transformers import AutoModelForCausalLM, AutoTokenizer
         
-        if teacher_dir.exists():
+        if model_dir.exists():
             try:
-                model = AutoModelForCausalLM.from_pretrained(str(teacher_dir))
-                logger.info(f"  ✓ Teacher model loads successfully")
+                AutoModelForCausalLM.from_pretrained(str(model_dir))
+                logger.info(f"  ✓ Layer E model loads successfully")
             except Exception as e:
-                logger.warning(f"  ⚠ Warning loading teacher model: {e}")
+                logger.warning(f"  ⚠ Warning loading Layer E model: {e}")
     except ImportError:
         logger.debug("  ⊘ transformers not installed, skipping load test")
     

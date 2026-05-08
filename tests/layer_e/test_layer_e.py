@@ -8,7 +8,7 @@ project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from core.layer_e.local_judge import LocalTeacherJudge
+from core.layer_e.local_judge import Qwen3GuardJudge # noqa: F401
 from core.settings import Settings
 
 
@@ -24,10 +24,10 @@ def load_test_data(csv_path):
 
 def build_judge():
     settings = Settings()
-    print(f"Using Layer E teacher model dir: {settings.layer_e_teacher_local_model_dir}")
-    return LocalTeacherJudge(
-        model_dir=settings.layer_e_teacher_local_model_dir,
-        model_name=settings.layer_e_teacher_local_model_dir,
+    print(f"Using Layer E model dir: {settings.layer_e_model_dir}")
+    return Qwen3GuardJudge(
+        model_dir=settings.layer_e_model_dir,
+        model_name=settings.layer_e_model_dir,
         temperature=settings.layer_e_temperature,
         timeout_s=settings.layer_e_timeout_s,
         max_retries=settings.layer_e_max_retries,

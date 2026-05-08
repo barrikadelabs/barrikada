@@ -11,7 +11,7 @@ from core.orchestrator import PIPipeline
 from core.settings import Settings
 from models.verdicts import FinalVerdict
 
-DEFAULT_MODEL_NAME = Settings().layer_e_teacher_local_model_dir
+DEFAULT_MODEL_NAME = Settings().layer_e_model_dir
 
 
 class BarrikadaAgent:
@@ -24,7 +24,7 @@ class BarrikadaAgent:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token or self.tokenizer.unk_token or self.tokenizer.pad_token
         dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-        self.model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=dtype, trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(model_name, dtype=dtype, trust_remote_code=True)
         self.model.to("cuda" if torch.cuda.is_available() else "cpu") # type: ignore
         self.model.eval()
         self.history: list[HumanMessage | AIMessage] = []
@@ -53,7 +53,6 @@ class BarrikadaAgent:
                 **encoded,
                 max_new_tokens=220,
                 do_sample=False,
-                temperature=0.2,
                 pad_token_id=self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
             )
         generated = output_ids[0][encoded["input_ids"].shape[-1]:]

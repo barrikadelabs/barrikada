@@ -34,16 +34,16 @@ class BaselineResult:
 
 
 def selected_runtime_model(settings):
-    return settings.layer_e_teacher_local_model_dir
+    return settings.layer_e_model_dir
 
 
-def _load_teacher_model(settings):
-    model_dir = settings.layer_e_teacher_local_model_dir
+def _load_layer_e_model(settings):
+    model_dir = settings.layer_e_model_dir
     tokenizer = AutoTokenizer.from_pretrained(model_dir, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token or tokenizer.unk_token or tokenizer.pad_token
     dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-    model = AutoModelForCausalLM.from_pretrained(model_dir, torch_dtype=dtype, trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(model_dir, dtype=dtype, trust_remote_code=True)
     cast(Any, model).to("cuda" if torch.cuda.is_available() else "cpu")
     cast(Any, model).eval()
     return tokenizer, model
@@ -124,7 +124,7 @@ def layer_statuses(summary):
 
 
 def run_unprotected_baseline(prompt, settings):
-    tokenizer, model = _load_teacher_model(settings)
+    tokenizer, model = _load_layer_e_model(settings)
     model_name = selected_runtime_model(settings)
 
     messages = [
@@ -144,7 +144,6 @@ def run_unprotected_baseline(prompt, settings):
             **encoded,
             max_new_tokens=220,
             do_sample=False,
-            temperature=0.2,
             pad_token_id=tokenizer.pad_token_id or tokenizer.eos_token_id,
         )
     latency_ms = (time.time() - started) * 1000.0

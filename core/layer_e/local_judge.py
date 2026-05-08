@@ -8,11 +8,16 @@ from typing import Any, cast
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerFast
 
-from .utils import FINETUNED_SYSTEM_PROMPT, JudgeOutput, build_user_prompt
+from .utils import JudgeOutput
 
 
-_VERDICT_RE = re.compile(r"VERDICT\s*:\s*(BLOCK|ALLOW)", re.IGNORECASE)
-_RATIONALE_RE = re.compile(r"RATIONALE\s*:\s*(.+)", re.IGNORECASE)
+_SAFETY_LABEL_RE = re.compile(r"Safety\s*:\s*(Safe|Unsafe|Controversial)", re.IGNORECASE)
+_CATEGORY_RE = re.compile(
+    r"(Violent|Non-violent Illegal Acts|Sexual Content or Sexual Acts|PII|"
+    r"Suicide & Self-Harm|Unethical Acts|Politically Sensitive Topics|"
+    r"Copyright Violation|Jailbreak|None)",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -27,7 +32,11 @@ class _JudgeParseResult:
     rationale: str
 
 
-class LocalTeacherJudge:
+class Qwen3GuardJudge:
+    @staticmethod
+    def _resolve_dtype(device: str) -> torch.dtype:
+        return torch.float16 if device == "cuda" else torch.float32
+
     @staticmethod
     def _load_tokenizer(model_dir):
         log = logging.getLogger(__name__)
@@ -84,45 +93,39 @@ class LocalTeacherJudge:
         self.max_new_tokens = int(max_new_tokens)
         self.no_think_default = bool(no_think_default)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.dtype = torch.float16 if self.device == "cuda" else torch.float32
+        self.dtype = self._resolve_dtype(self.device)
 
         self.tokenizer = self._load_tokenizer(self.state.model_dir)
         self.model = AutoModelForCausalLM.from_pretrained(
             self.state.model_dir,
-            torch_dtype=self.dtype,
+            dtype=self.dtype,
             trust_remote_code=True,
         )
         cast(Any, self.model).to(self.device)
         cast(Any, self.model).eval()
 
     def _build_messages(self, prompt):
-        return [
-            {"role": "system", "content": FINETUNED_SYSTEM_PROMPT},
-            {"role": "user", "content": build_user_prompt(prompt, mode="finetuned")},
-        ]
+        return [{"role": "user", "content": prompt}]
 
-    def _render_prompt(self, prompt):
+    def _generate_completion(self, prompt):
         messages = self._build_messages(prompt)
-        if hasattr(self.tokenizer, "apply_chat_template"):
-            return self.tokenizer.apply_chat_template(
+        tokenizer = cast(Any, self.tokenizer)
+        model = cast(Any, self.model)
+        if hasattr(tokenizer, "apply_chat_template"):
+            rendered_prompt = tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,
                 add_generation_prompt=True,
             )
-        return "\n".join(message["content"] for message in messages)
-
-    def _generate_completion(self, prompt):
-        rendered_prompt = self._render_prompt(prompt)
-        tokenizer = cast(Any, self.tokenizer)
-        model = cast(Any, self.model)
-        encoded = tokenizer(rendered_prompt, return_tensors="pt")
+            encoded = tokenizer(rendered_prompt, return_tensors="pt")
+        else:
+            encoded = tokenizer(prompt, return_tensors="pt")
         encoded = {key: value.to(self.device) for key, value in encoded.items()}
         input_length = int(encoded["input_ids"].shape[-1])
 
         generation_kwargs = {
             "max_new_tokens": self.max_new_tokens,
             "do_sample": False,
-            "temperature": self.temperature,
             "pad_token_id": self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
         }
 
@@ -134,18 +137,17 @@ class LocalTeacherJudge:
 
     @staticmethod
     def _parse_output(content):
-        verdict_match = _VERDICT_RE.search(content)
+        verdict_match = _SAFETY_LABEL_RE.search(content)
         if verdict_match is None:
-            bare = content.strip().upper()
-            if bare.startswith("BLOCK"):
-                return _JudgeParseResult(decision="block", rationale="Model returned BLOCK verdict")
-            if bare.startswith("ALLOW"):
-                return _JudgeParseResult(decision="allow", rationale="Model returned ALLOW verdict")
             return None
 
-        decision = "block" if verdict_match.group(1).upper() == "BLOCK" else "allow"
-        rationale_match = _RATIONALE_RE.search(content)
-        rationale = rationale_match.group(1).strip() if rationale_match else "No rationale provided"
+        raw_label = verdict_match.group(1).lower()
+        decision = "allow" if raw_label == "safe" else "block"
+        categories = [match.strip() for match in _CATEGORY_RE.findall(content)]
+        if categories:
+            rationale = f"Qwen3Guard classified input as {raw_label} in categories: {', '.join(categories)}"
+        else:
+            rationale = f"Qwen3Guard classified input as {raw_label}"
         return _JudgeParseResult(decision=decision, rationale=rationale)
 
     def call_judge(self, prompt, *, no_think=None, max_retries=None):

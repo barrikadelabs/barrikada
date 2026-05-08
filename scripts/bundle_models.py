@@ -50,8 +50,8 @@ LAYER_CONFIGS = {
     "layer_e": {
         "outputs_dir": CORE_DIR / "layer_e" / "outputs",
         "target_dir": MODELS_DIR / "layer_e",
-        "required_patterns": ["teacher/", "*.json"],
-        "description": "LLM Judge (Hugging Face checkpoint)",
+        "required_patterns": ["qwen3guard-barrikade/", "*.json"],
+        "description": "LLM Judge (bundled Hugging Face checkpoint)",
     },
 }
 

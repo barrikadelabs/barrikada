@@ -83,7 +83,7 @@ It applies a staged pipeline so most traffic exits early at low cost and only un
 - Layer B: signature and embedding-based screening
 - Layer C: lightweight ML classifier
 - Layer D: optional higher-cost classifier path
-- Layer E: local teacher judge fallback
+- Layer E: local Qwen3Guard judge fallback
 
 ## Architecture overview
 

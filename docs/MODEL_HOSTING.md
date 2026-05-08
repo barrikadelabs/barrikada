@@ -27,7 +27,7 @@ core/models/
 │   ├── config.json
 │   └── archives/
 └── layer_e/
-    ├── teacher/ (LLM checkpoint)
+    ├── qwen3guard-barrikade/ (Qwen3Guard-Gen-0.6B bundle)
     └── archives/
 ```
 
@@ -52,6 +52,12 @@ gsutil logging set on -b gs://barrikada-logs -o model-uploads gs://$BUCKET_NAME 
 
 ```bash
 pip install -r requirements.txt
+```
+
+**Download Layer E from Hugging Face**:
+
+```bash
+python scripts/download_qwen3guard.py
 ```
 
 **Initialize models directory** (one-time):
@@ -402,7 +408,7 @@ gsutil iam get gs://$BUCKET_NAME | grep allUsers
 **Fix**:
 ```bash
 # Delete and re-download
-rm -rf core/models/layer_*/*.joblib core/models/layer_*/model core/models/layer_*/teacher
+rm -rf core/models/layer_*/*.joblib core/models/layer_*/model core/models/layer_e/qwen3guard-barrikade core/models/layer_*/teacher
 
 # Re-download with validation
 python scripts/gcs_download.py --bucket barrikada-models --validate

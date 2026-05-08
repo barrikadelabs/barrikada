@@ -277,13 +277,13 @@ class Settings(BaseModel):
             self._default_results_dir() / "layer_d_eval_latest.json",
         )
 
-    ### Layer E (Qwen3.5 LLM judge)
-    layer_e_judge_mode: str = "finetuned"
-    layer_e_runtime_finetuned_model: str = "qwen3.5:4b"
+    ### Layer E (Qwen3Guard local judge)
+    layer_e_judge_mode: str = "qwen3guard"
+    layer_e_model_hf_id: str = "Qwen/Qwen3Guard-Gen-0.6B"
     layer_e_temperature: float = 0.0
     layer_e_timeout_s: float = 30.0
     layer_e_max_retries: int = 2
-    layer_e_max_new_tokens: int = 16
+    layer_e_max_new_tokens: int = 64
     layer_e_no_think_default: bool = True
 
     # Teacher SFT defaults (QLoRA)
@@ -319,9 +319,8 @@ class Settings(BaseModel):
         )
 
     @property
-    def layer_e_teacher_local_model_dir(self):
+    def layer_e_model_dir(self):
         return self._path_with_override(
-            "BARRIKADA_LAYER_E_TEACHER_LOCAL_MODEL_DIR",
-            Path(self.core_models_dir) / "layer_e" / "teacher" / "merged_teacher",
+            "BARRIKADA_LAYER_E_MODEL_DIR",
+            Path(self.core_models_dir) / "layer_e" / "qwen3guard-barrikade",
         )
-

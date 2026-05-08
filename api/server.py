@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from core.orchestrator import PIPipeline
+from core.settings import Settings
 
 log = logging.getLogger(__name__)
 
@@ -77,10 +78,12 @@ def ready():
             detail=(state.startup_error or "Pipeline not initialized"),
         )
 
+    settings = Settings()
+
     return ReadinessResponse(
         status="ready",
         pipeline_initialized=True,
-        details="Layer E judge active.",
+        details=f"Layer E judge active ({settings.layer_e_judge_mode}).",
     )
 
 

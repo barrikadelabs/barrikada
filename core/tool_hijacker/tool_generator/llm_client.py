@@ -1,4 +1,4 @@
-"""Simple local teacher-backed LLM client."""
+"""Simple local Qwen3Guard-backed LLM client."""
 
 import torch
 from typing import Any, cast
@@ -8,18 +8,18 @@ from core.settings import Settings
 
 
 class LLMClient:
-    """Handles local teacher model text generation."""
+    """Handles local Qwen3Guard model text generation."""
     
     def __init__(self, model= None, base_url= None):
         settings = Settings()
-        self.model = model or settings.layer_e_teacher_local_model_dir
+        self.model = model or settings.layer_e_model_dir
         self.base_url = base_url
         self.tokenizer = AutoTokenizer.from_pretrained(self.model, trust_remote_code=True)
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token or self.tokenizer.unk_token or self.tokenizer.pad_token
         dtype = torch.float16 if torch.cuda.is_available() else torch.float32
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model_obj = AutoModelForCausalLM.from_pretrained(self.model, torch_dtype=dtype, trust_remote_code=True)
+        self.model_obj = AutoModelForCausalLM.from_pretrained(self.model, dtype=dtype, trust_remote_code=True)
         cast(Any, self.model_obj).to(self.device)
         cast(Any, self.model_obj).eval()
     
@@ -31,7 +31,6 @@ class LLMClient:
                 **encoded,
                 max_new_tokens=max_tokens,
                 do_sample=False,
-                temperature=0.2,
                 pad_token_id=self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
             )
         generated = output_ids[0][encoded["input_ids"].shape[-1]:]

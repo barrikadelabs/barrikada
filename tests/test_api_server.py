@@ -72,7 +72,7 @@ def test_ready_local_teacher_mode(monkeypatch):
 
     monkeypatch.setattr(
         "api.server.Settings",
-        lambda: SimpleNamespace(layer_e_judge_mode="finetuned"),
+        lambda: SimpleNamespace(layer_e_judge_mode="qwen3guard"),
     )
 
     client = TestClient(app)
@@ -82,4 +82,4 @@ def test_ready_local_teacher_mode(monkeypatch):
     payload = resp.json()
     assert payload["status"] == "ready"
     assert payload["pipeline_initialized"] is True
-    assert "teacher-backed" in payload["details"]
+    assert "qwen3guard" in payload["details"].lower()

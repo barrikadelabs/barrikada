@@ -7,7 +7,7 @@ Clean, modular LLM-powered tool document generator for training and testing.
 ```
 tool_generator/
 ├── __init__.py           # Package exports
-├── llm_client.py         # Local teacher-backed client (60 lines)
+├── llm_client.py         # Local Qwen3Guard-backed client (60 lines)
 ├── tool_factory.py       # Tool creation logic (90 lines)
 └── testbed_generator.py  # Main orchestrator (130 lines)
 ```
@@ -24,7 +24,7 @@ python3 generate_testbed.py
 ```python
 from core.tool_hijacker.tool_generator import TestbedGenerator
 
-# Initialize (uses the local teacher checkpoint)
+# Initialize (uses the local Qwen3Guard bundle)
 generator = TestbedGenerator(model="llama3.2")
 
 # Generate dataset
@@ -64,7 +64,7 @@ CSV file with columns:
 ## Modules
 
 ### `llm_client.py`
-Simple wrapper for the local teacher model.
+Simple wrapper for the local Qwen3Guard model.
 - Generates text from prompts
 - Loads the local checkpoint once and reuses it
 

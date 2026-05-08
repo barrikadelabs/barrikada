@@ -36,8 +36,8 @@ class PIPipeline:
             max_length=settings.layer_d_max_length,
         )
         self.layer_e_judge = LLMJudge(
-            model_dir=settings.layer_e_teacher_local_model_dir,
-            model_name=settings.layer_e_teacher_local_model_dir,
+            model_dir=settings.layer_e_model_dir,
+            model_name=settings.layer_e_model_dir,
             temperature=settings.layer_e_temperature,
             timeout_s=settings.layer_e_timeout_s,
             max_retries=settings.layer_e_max_retries,
