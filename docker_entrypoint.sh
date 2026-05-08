@@ -1,15 +1,17 @@
 #!/bin/bash
 # Container entrypoint that downloads models from GCS before starting the API server.
 #
-# Required environment variables:
+# Optional environment variables:
 #   BARRIKADA_GCS_BUCKET: GCS bucket name (must be publicly readable)
 #
-# The container never uses local model mounts or baked-in model artifacts.
+# If valid local models already exist under /app/core/models, the container uses
+# them as-is and skips the GCS download.
 
 set -euo pipefail
 
 MODELS_DIR="/app/core/models"
 LOG_PREFIX="[BARRIKADA INIT]"
+DEFAULT_GCS_BUCKET="barrikade-bundles"
 
 log_info() {
     echo "$LOG_PREFIX INFO: $1"
@@ -23,21 +25,30 @@ log_error() {
     echo "$LOG_PREFIX ERROR: $1" >&2
 }
 
-# Download models from GCS
-download_models_from_gcs() {
-    if [ -z "${BARRIKADA_GCS_BUCKET:-}" ]; then
-        log_error "BARRIKADA_GCS_BUCKET is required"
+has_local_models() {
+    if [ ! -d "$MODELS_DIR" ]; then
         return 1
     fi
 
-    log_info "Downloading models from GCS (bucket: $BARRIKADA_GCS_BUCKET)..."
+    if find "$MODELS_DIR" -type f ! -path "*/archives/*" | grep -q .; then
+        return 0
+    fi
+
+    return 1
+}
+
+# Download models from GCS
+download_models_from_gcs() {
+    local bucket="${BARRIKADA_GCS_BUCKET:-$DEFAULT_GCS_BUCKET}"
+
+    log_info "Downloading models from GCS (bucket: $bucket)..."
 
     rm -rf "$MODELS_DIR"
     mkdir -p "$MODELS_DIR"
 
     cd /app
     if python -m scripts.gcs_download \
-        --bucket "$BARRIKADA_GCS_BUCKET" \
+        --bucket "$bucket" \
         --no-archive-old \
         --validate \
         2>&1; then
@@ -67,15 +78,29 @@ main() {
     log_info "Starting Barrikada container initialization..."
     log_info "Models directory: $MODELS_DIR"
 
-    log_info "Downloading models from GCS..."
-
-    if ! download_models_from_gcs; then
-        log_error "Failed to initialize models from GCS"
-        exit 1
-    fi
-
-    if ! validate_models; then
-        exit 1
+    if has_local_models; then
+        log_info "Existing local models detected, validating before startup..."
+        if validate_models; then
+            log_info "Using existing local models"
+        else
+            log_warn "Existing local models are invalid, re-downloading from GCS"
+            if ! download_models_from_gcs; then
+                log_error "Failed to initialize models from GCS"
+                exit 1
+            fi
+            if ! validate_models; then
+                exit 1
+            fi
+        fi
+    else
+        log_info "No local models found, downloading from GCS..."
+        if ! download_models_from_gcs; then
+            log_error "Failed to initialize models from GCS"
+            exit 1
+        fi
+        if ! validate_models; then
+            exit 1
+        fi
     fi
 
     log_info "Initialization complete, starting API server..."

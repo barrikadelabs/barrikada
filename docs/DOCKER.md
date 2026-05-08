@@ -20,12 +20,21 @@ docker build --target production -t barrikada/api:latest .
 
 ```bash
 docker run --rm -p 8000:8000 \
+  barrikada/api:latest
+```
+
+By default the container downloads runtime models from the public
+`barrikade-bundles` bucket if no valid local models are present.
+
+To override the bucket:
+
+```bash
+docker run --rm -p 8000:8000 \
   -e BARRIKADA_GCS_BUCKET=<public-gcs-bucket> \
   barrikada/api:latest
 ```
 
-The container downloads models from the public GCS bucket on startup and does not
-use local model mounts.
+To use local models instead of GCS, mount them at `/app/core/models`.
 
 See `docs/MODEL_HOSTING.md` for details on model distribution and configuration.
 
@@ -72,14 +81,14 @@ Set `include_diagnostics=true` to receive full per-layer output.
 
 ## Environment
 
-- `BARRIKADA_GCS_BUCKET`: public bucket that hosts the runtime models
+- `BARRIKADA_GCS_BUCKET`: optional public bucket override for runtime models
 - `HF_HOME`: Hugging Face cache root
 - `HUGGINGFACE_HUB_CACHE`: Hugging Face hub cache path
 - `SENTENCE_TRANSFORMERS_HOME`: sentence-transformers cache path
 
-The image starts by downloading all runtime models from GCS and validates them
-before launching the API. Internal model paths resolve under `/app/core/models`
-and do not require any local volume mount.
+The image validates any models already present under `/app/core/models`. If no
+valid models are present, it downloads all runtime models from GCS before
+launching the API.
 
 Models are automatically downloaded from Google Cloud Storage on container startup.
 For offline deployment or custom model sources, see `docs/MODEL_HOSTING.md`.

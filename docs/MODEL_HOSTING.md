@@ -195,7 +195,7 @@ python scripts/cleanup_archives.py \
 
 ### Configuration
 
-Set the public GCS bucket name (no credentials needed):
+Optionally set the public GCS bucket name override (no credentials needed):
 
 ```yaml
 services:
@@ -209,17 +209,19 @@ services:
 When the container starts:
 
 1. **Check for local models** at `/app/core/models/`
-2. If not found and `BARRIKADA_GCS_BUCKET` is set:
+2. If valid local models are present:
+     - Use them directly
+3. If not found or invalid:
      - Download models from public GCS bucket using anonymous access
      - Validate downloaded models
-3. Start the API server
+4. Start the API server
 
 ### Example: Start Container with GCS Models
 
 ```bash
-docker-compose build
+docker compose build
 
-docker-compose run -e BARRIKADA_GCS_BUCKET=barrikade-bundles barrikada-api
+docker compose run barrikada-api
 ```
 
 ### Local Development with Docker
@@ -227,13 +229,13 @@ docker-compose run -e BARRIKADA_GCS_BUCKET=barrikade-bundles barrikada-api
 Mount local models to skip GCS download:
 
 ```bash
-docker-compose run -v $(pwd)/core/models:/app/core/models barrikada-api
+docker compose run -v $(pwd)/core/models:/app/core/models:ro barrikada-api
 ```
 
-Or skip credentials to use only local models:
+Or override the public GCS bucket explicitly:
 
 ```bash
-docker-compose run barrikada-api
+docker compose run -e BARRIKADA_GCS_BUCKET=barrikada-models barrikada-api
 ```
 
 ## Command Reference
