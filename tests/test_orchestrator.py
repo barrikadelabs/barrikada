@@ -2,7 +2,6 @@ from core.orchestrator import PIPipeline
 import pandas as pd
 import datetime
 
-from scripts.orchestrator_perf import analyze_performance
 
 def test_pipeline():
     print("Orchestrator Demo")
