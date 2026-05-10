@@ -27,16 +27,28 @@ class Classifier:
         _device = "cuda" if torch.cuda.is_available() else "cpu"
         self.encoder = SentenceTransformer(embedding_model, device=_device)
 
-        # Calibrator and metadata always come from the joblib.
-        artifact = joblib.load(model_path)
-        self.calibrator = artifact.get("calibrator")
-
         # Prefer the ONNX classifier sibling if it exists; fall back to the
-        # sklearn XGBoost in the joblib otherwise. The ONNX path skips the
-        # Python XGBoost runtime, which lets the production image drop the
-        # xgboost dependency once everyone is on this code path.
+        # sklearn XGBoost in the joblib otherwise. The ONNX path is structured
+        # so that it does NOT need to unpickle classifier.joblib (which
+        # embeds the XGBClassifier object and would still require xgboost to
+        # be installed) — it loads the calibrator from a separate
+        # calibrator.joblib artifact written alongside classifier.onnx by
+        # scripts/export_layer_c_onnx.py. Once classifier.joblib is no longer
+        # bundled, xgboost can drop from the runtime image entirely.
         onnx_path = Path(model_path).with_suffix(".onnx")
+        calibrator_path = Path(model_path).parent / "calibrator.joblib"
         if onnx_path.exists():
+            # ONNX path: avoid unpickling the full classifier.joblib if a
+            # standalone calibrator artifact is present.
+            if calibrator_path.exists():
+                cal_artifact = joblib.load(calibrator_path)
+                self.calibrator = cal_artifact.get("calibrator")
+            else:
+                # Backward compat: pre-split bundles still have everything
+                # in the full joblib. Loading it here requires xgboost; that
+                # constraint goes away once calibrator.joblib is the norm.
+                artifact = joblib.load(model_path)
+                self.calibrator = artifact.get("calibrator")
             import onnxruntime as ort
             self._onnx_session = ort.InferenceSession(
                 str(onnx_path),
@@ -45,6 +57,10 @@ class Classifier:
             self._onnx_input_name = self._onnx_session.get_inputs()[0].name
             self.model = None
         else:
+            # sklearn fallback path: load model + calibrator from the full
+            # joblib as before.
+            artifact = joblib.load(model_path)
+            self.calibrator = artifact.get("calibrator")
             self._onnx_session = None
             self.model = artifact.get("model")
             if self.model is None or not hasattr(self.model, "predict_proba"):

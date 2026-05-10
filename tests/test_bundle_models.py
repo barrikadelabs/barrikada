@@ -34,6 +34,7 @@ def test_layer_c_pattern_excludes_dead_weight(tmp_path):
     # Files that must be bundled
     (outputs / "classifier.joblib").write_bytes(b"current_joblib")
     (outputs / "classifier.onnx").write_bytes(b"current_onnx")
+    (outputs / "calibrator.joblib").write_bytes(b"calibrator_only")
     release_dir = outputs / "releases" / "v0.1"
     release_dir.mkdir(parents=True)
     (release_dir / "classifier.joblib").write_bytes(b"v0.1_joblib")
@@ -56,6 +57,7 @@ def test_layer_c_pattern_excludes_dead_weight(tmp_path):
     assert matched_relative == {
         "classifier.joblib",
         "classifier.onnx",
+        "calibrator.joblib",
         "releases/v0.1/classifier.joblib",
     }
 

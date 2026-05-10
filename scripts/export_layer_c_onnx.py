@@ -64,9 +64,12 @@ def main():
     print("Loading XGBoost classifier from joblib...")
     artifact = joblib.load(src)
     model = artifact["model"]
+    calibrator = artifact.get("calibrator")
+    metadata = artifact.get("metadata", {})
     print(f"  Model class:   {type(model).__name__}")
     print(f"  n_estimators:  {getattr(model, 'n_estimators', '?')}")
     print(f"  max_depth:     {getattr(model, 'max_depth', '?')}")
+    print(f"  Calibrator:    {type(calibrator).__name__ if calibrator else 'None'}")
     print()
 
     print(f"Converting to ONNX (input shape: (None, {args.input_dim}))...")
@@ -83,12 +86,24 @@ def main():
     with open(dst, "wb") as f:
         f.write(onnx_model.SerializeToString())
 
+    # Also emit a calibrator-only joblib that does NOT embed the XGBoost
+    # model object. The runtime ONNX path loads this and skips unpickling
+    # the full classifier.joblib (which would otherwise require xgboost to
+    # be installed in production for the unpickle to construct
+    # XGBClassifier instances).
+    calibrator_path = dst.parent / "calibrator.joblib"
+    calibrator_artifact = {"calibrator": calibrator, "metadata": metadata}
+    joblib.dump(calibrator_artifact, calibrator_path)
+    print(f"Saved calibrator-only artifact to {calibrator_path}")
+
     src_size = src.stat().st_size
     dst_size = dst.stat().st_size
+    cal_size = calibrator_path.stat().st_size
     print()
     print("--- Result ---")
-    print(f"joblib size: {src_size / 1024 / 1024:>8.2f} MB")
-    print(f"ONNX size:   {dst_size / 1024 / 1024:>8.2f} MB")
+    print(f"joblib size:     {src_size / 1024 / 1024:>8.2f} MB  (classifier.joblib, includes xgboost model)")
+    print(f"ONNX size:       {dst_size / 1024 / 1024:>8.2f} MB  (classifier.onnx)")
+    print(f"Calibrator size: {cal_size / 1024 / 1024:>8.2f} MB  (calibrator.joblib, no xgboost dep)")
 
 
 if __name__ == "__main__":
