@@ -46,7 +46,7 @@ LAYER_CONFIGS = {
     "layer_c": {
         "outputs_dir": CORE_DIR / "layer_c" / "outputs",
         "target_dir": MODELS_DIR / "layer_c",
-        "required_patterns": ["*.joblib"],
+        "required_patterns": ["classifier.joblib"],
         "description": "ML Classifier (XGBoost/sklearn models)",
     },
     "layer_d": {
