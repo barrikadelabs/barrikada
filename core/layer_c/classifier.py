@@ -1,5 +1,6 @@
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 import joblib
@@ -25,22 +26,58 @@ class Classifier:
     def __init__(self, model_path, embedding_model="all-mpnet-base-v2", low=0.35, high=0.85, ):
         _device = "cuda" if torch.cuda.is_available() else "cpu"
         self.encoder = SentenceTransformer(embedding_model, device=_device)
-        artifact = joblib.load(model_path)
 
-        self.model = artifact.get("model")
+        # Calibrator and metadata always come from the joblib.
+        artifact = joblib.load(model_path)
         self.calibrator = artifact.get("calibrator")
 
-        if self.model is None or not hasattr(self.model, "predict_proba"):
-            raise ValueError("Layer C model artifact does not contain a valid predict_proba model")
+        # Prefer the ONNX classifier sibling if it exists; fall back to the
+        # sklearn XGBoost in the joblib otherwise. The ONNX path skips the
+        # Python XGBoost runtime, which lets the production image drop the
+        # xgboost dependency once everyone is on this code path.
+        onnx_path = Path(model_path).with_suffix(".onnx")
+        if onnx_path.exists():
+            import onnxruntime as ort
+            self._onnx_session = ort.InferenceSession(
+                str(onnx_path),
+                providers=["CPUExecutionProvider"],
+            )
+            self._onnx_input_name = self._onnx_session.get_inputs()[0].name
+            self.model = None
+        else:
+            self._onnx_session = None
+            self.model = artifact.get("model")
+            if self.model is None or not hasattr(self.model, "predict_proba"):
+                raise ValueError(
+                    "Layer C model artifact does not contain a valid "
+                    "predict_proba model and no classifier.onnx was found "
+                    "alongside the joblib"
+                )
 
         self.thresholds = Thresholds(low=low, high=high)
         self.thresholds.validate()
+
+    def _predict_class1_probabilities(self, embeddings):
+        """Return a 1-D array of class-1 probabilities for each row of
+        embeddings. Selects between the ONNX and sklearn backends based on
+        which one is loaded."""
+        if self._onnx_session is not None:
+            # onnxmltools.convert_xgboost emits a ZipMap output, so the
+            # second output is a list of {0: p0, 1: p1} dicts rather than
+            # a numpy array. Unwrap to extract only the class-1 column.
+            embeddings = np.asarray(embeddings, dtype=np.float32)
+            outputs = self._onnx_session.run(
+                None, {self._onnx_input_name: embeddings}
+            )
+            zipmap = outputs[1]
+            return np.array([d[1] for d in zipmap], dtype=np.float32)
+        return self.model.predict_proba(embeddings)[:, 1]
 
     def predict(self, input_text):
         start_time = time.time()
 
         emb = self.encoder.encode([input_text], normalize_embeddings=True)
-        probability_score = float(self.model.predict_proba(emb)[:, 1][0])
+        probability_score = float(self._predict_class1_probabilities(emb)[0])
         if self.calibrator is not None:
             probability_score = float(self.calibrator.predict(np.array([probability_score]))[0])
 
@@ -77,7 +114,7 @@ class Classifier:
     def predict_batch(self, texts):
         """Return raw probability scores for a batch of texts."""
         embs = self.encoder.encode(texts, normalize_embeddings=True, show_progress_bar=False)
-        probs = self.model.predict_proba(embs)[:, 1]
+        probs = self._predict_class1_probabilities(embs)
         if self.calibrator is not None:
             probs = self.calibrator.predict(probs)
         return probs
