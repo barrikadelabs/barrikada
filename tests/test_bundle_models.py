@@ -11,7 +11,7 @@ experiments — none consumed at runtime by core/layer_c/classifier.py.
 
 Layer B: had ~138 MB of artifacts the runtime ignores — the signature_encoder
 sentence-transformer (only prompt_encoder is loaded by
-core/layer_b/signature_engine.py:30) and the extracted/*.yar pattern files
+core/layer_b/signature_engine.py) and the extracted/*.yar pattern files
 (no .yar references in any core/*.py).
 """
 import sys
