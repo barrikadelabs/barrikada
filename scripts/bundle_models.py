@@ -32,13 +32,21 @@ LAYER_CONFIGS = {
     "layer_b": {
         "outputs_dir": CORE_DIR / "layer_b" / "signatures",
         "target_dir": MODELS_DIR / "layer_b",
-        "required_patterns": ["*.faiss", "*.npy", "*.json"],
+        "required_patterns": [
+            "embeddings/centroids.npy",
+            "embeddings/benign_centroids.npy",
+            "embeddings/cluster_radii.json",
+            "embeddings/metadata.json",
+            "embeddings/faiss_index.bin",
+            "embeddings/benign_faiss_index.bin",
+            "embeddings/prompt_encoder/",
+        ],
         "description": "Signature Engine (FAISS indices, embeddings)",
     },
     "layer_c": {
         "outputs_dir": CORE_DIR / "layer_c" / "outputs",
         "target_dir": MODELS_DIR / "layer_c",
-        "required_patterns": ["*.joblib"],
+        "required_patterns": ["classifier.joblib"],
         "description": "ML Classifier (XGBoost/sklearn models)",
     },
     "layer_d": {
