@@ -1,5 +1,3 @@
-import os
-import platform
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -7,6 +5,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 from sentence_transformers import SentenceTransformer
+import torch
 
 from models.LayerCResult import LayerCResult
 
@@ -87,8 +86,8 @@ class Classifier:
                 None, {self._onnx_input_name: embeddings}
             )
             zipmap = outputs[1]
-            return np.array([d[1] for d in zipmap], dtype=np.float32)
-        return self.model.predict_proba(embeddings)[:, 1]
+            return np.array([d[1] for d in zipmap], dtype=np.float32) # type: ignore
+        return self.model.predict_proba(embeddings)[:, 1] # type: ignore
 
     def predict(self, input_text):
         start_time = time.time()

@@ -55,7 +55,7 @@ LAYER_CONFIGS: Dict[str, LayerConfig] = {
     "layer_c": LayerConfig(
         outputs_dir=CORE_DIR / "layer_c" / "outputs",
         target_dir=MODELS_DIR / "layer_c",
-        required_patterns=("classifier.joblib",),
+        required_patterns=("classifier.joblib", "classifier.onnx", "calibrator.joblib"),
         description="ML Classifier (XGBoost/sklearn models)",
     ),
     "layer_d": LayerConfig(
