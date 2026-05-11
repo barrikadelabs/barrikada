@@ -66,7 +66,32 @@ class SignatureEngine:
         )
         return self.settings.layer_b_embedding_model
 
+    @staticmethod
+    def _is_onnx_encoder_dir_ready(model_dir: Path) -> bool:
+        required_files = [
+            model_dir / "config.json",
+            model_dir / "modules.json",
+            model_dir / "tokenizer.json",
+            model_dir / "onnx" / "model.onnx",
+        ]
+        return all(path.exists() for path in required_files)
+
     def _load_model(self):
+        # Prefer the ONNX-converted encoder when it's available alongside
+        # the PT prompt_encoder. On CPU (production deployment target),
+        # SentenceTransformer with backend="onnx" runs ~2.5x faster per
+        # single-sample request than the PT path. Produced by
+        # scripts/export_layer_b_onnx.py.
+        #
+        # onnxruntime's execution provider handles device selection
+        # internally, so we don't pass device= when using backend="onnx".
+        onnx_dir = Path(self.settings.layer_b_signatures_dir) / "prompt_encoder_onnx"
+        if onnx_dir.exists() and self._is_onnx_encoder_dir_ready(onnx_dir):
+            log.info("Loading ONNX prompt encoder: %s", onnx_dir)
+            self.model = SentenceTransformer(str(onnx_dir), backend="onnx")
+            return
+
+        # PT backend fallback (fine-tuned local encoder or HF Hub base model)
         model_name = self._resolve_prompt_encoder_model()
         device = self._select_device()
         log.info("Layer B encoder device: %s", device)
