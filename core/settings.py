@@ -80,10 +80,26 @@ class Settings(BaseModel):
         )
 
     @property
+    def bundle_root_dir(self) -> str:
+        return self._path_with_override(
+            "BARRIKADA_BUNDLE_DIR",
+            self._user_state_root / "bundle",
+        )
+
+    @property
     def artifacts_root_dir(self) -> str:
+        default_root = Path(self.bundle_root_dir)
         return self._path_with_override(
             "BARRIKADA_ARTIFACTS_DIR",
-            self._user_state_root / "artifacts",
+            default_root,
+        )
+
+    @property
+    def bundle_manifest_path(self) -> str:
+        default_path = Path(self.bundle_root_dir) / "manifest.json"
+        return self._path_with_override(
+            "BARRIKADA_BUNDLE_MANIFEST_PATH",
+            default_path,
         )
 
     # Models are centrally managed under `core/models/` (see
@@ -139,6 +155,7 @@ class Settings(BaseModel):
     def layer_b_signatures_candidates(self) -> list[Path]:
         return [
             Path(self.core_models_dir) / "layer_b" / "embeddings",
+            Path(self.bundle_root_dir) / "layer_b" / "embeddings",
             Path(self.artifacts_root_dir) / "layer_b" / "embeddings",
             self._package_root / "layer_b" / "signatures" / "embeddings",
         ]
@@ -221,6 +238,7 @@ class Settings(BaseModel):
         legacy = self._package_root / "layer_c" / "outputs" / "classifier.joblib"
         return [
             Path(self.core_models_dir) / "layer_c" / "classifier.joblib",
+            Path(self.bundle_root_dir) / "layer_c" / "classifier.joblib",
             Path(self.artifacts_root_dir) / "layer_c" / "classifier.joblib",
             legacy,
         ]
@@ -286,6 +304,7 @@ class Settings(BaseModel):
         legacy = self._package_root / "layer_d" / "outputs" / "model"
         return [
             Path(self.core_models_dir) / "layer_d" / "model",
+            Path(self.bundle_root_dir) / "layer_d" / "model",
             Path(self.artifacts_root_dir) / "layer_d" / "model",
             legacy,
         ]
@@ -358,5 +377,6 @@ class Settings(BaseModel):
     def layer_e_model_candidates(self) -> list[Path]:
         return [
             Path(self.core_models_dir) / "layer_e" / "qwen3guard-barrikade",
+            Path(self.bundle_root_dir) / "layer_e" / "qwen3guard-barrikade",
             Path(self.artifacts_root_dir) / "layer_e" / "qwen3guard-barrikade",
         ]

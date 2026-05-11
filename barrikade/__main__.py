@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from core.artifacts import download_runtime_artifacts
+from core.artifacts import download_runtime_bundle
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,6 +22,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override the public GCS bucket name.",
     )
     download_parser.add_argument(
+        "--manifest-url",
+        default=None,
+        help="Override the bundle manifest URL.",
+    )
+    download_parser.add_argument(
         "--force",
         action="store_true",
         help="Re-download artifacts even if local copies already exist.",
@@ -35,7 +40,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "download-artifacts":
-        summary = download_runtime_artifacts(bucket_name=args.bucket, force=args.force)
+        summary = download_runtime_bundle(
+            bucket_name=args.bucket,
+            manifest_url=args.manifest_url,
+            force=args.force,
+        )
         print(json.dumps(summary, indent=2))
         return 0
 

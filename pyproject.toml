@@ -14,6 +14,7 @@ authors = [
 ]
 dependencies = [
   "confusable-homoglyphs>=3.3.1",
+  "chardet==5.2.0",
   "faiss-cpu>=1.13.0",
   "ftfy>=6.3.1",
   "google-cloud-storage>=2.10.0",

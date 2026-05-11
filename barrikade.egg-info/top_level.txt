@@ -1,3 +1,0 @@
-barrikade
-core
-models

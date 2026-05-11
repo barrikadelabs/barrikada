@@ -1,7 +1,8 @@
+import os
+import platform
 import time
 from dataclasses import dataclass
 
-import torch
 import joblib
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -23,8 +24,9 @@ class Thresholds:
 
 class Classifier:
     def __init__(self, model_path, embedding_model="all-mpnet-base-v2", low=0.35, high=0.85, ):
-        _device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.encoder = SentenceTransformer(embedding_model, device=_device)
+        self._configure_runtime()
+        device = self._resolve_device()
+        self.encoder = SentenceTransformer(embedding_model, device=device)
         artifact = joblib.load(model_path)
 
         self.model = artifact.get("model")
@@ -36,6 +38,46 @@ class Classifier:
         self.thresholds = Thresholds(low=low, high=high)
         self.thresholds.validate()
 
+##### SAFE MDOE - remove once ONNX is in place. 
+    @staticmethod
+    def _resolve_device() -> str:
+        forced = os.getenv("BARRIKADA_LAYER_C_DEVICE", "").strip().lower()
+        if forced in {"cpu", "cuda", "mps"}:
+            return forced
+
+        if platform.system() == "Darwin":
+            return "cpu"
+
+        import torch
+
+        return "cuda" if torch.cuda.is_available() else "cpu"
+
+    @staticmethod
+    def _configure_runtime() -> None:
+        safe_mode = os.getenv("BARRIKADA_LAYER_C_SAFE_MODE")
+        if safe_mode is None:
+            safe_mode = "1" if platform.system() == "Darwin" else "0"
+
+        if safe_mode != "0":
+            os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+            for env_var in (
+                "OMP_NUM_THREADS",
+                "MKL_NUM_THREADS",
+                "OPENBLAS_NUM_THREADS",
+                "VECLIB_MAXIMUM_THREADS",
+                "NUMEXPR_NUM_THREADS",
+            ):
+                os.environ.setdefault(env_var, "1")
+
+            import torch
+
+            try:
+                torch.set_num_threads(1)
+                torch.set_num_interop_threads(1)
+            except (ValueError, RuntimeError):
+                pass
+
+#######
     def predict(self, input_text):
         start_time = time.time()
 

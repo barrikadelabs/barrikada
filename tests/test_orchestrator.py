@@ -1,6 +1,13 @@
-from core.orchestrator import PIPipeline
-import pandas as pd
+import os
 import datetime
+
+import pandas as pd
+import pytest
+
+from core.orchestrator import PIPipeline
+
+if os.getenv("BARRIKADA_AUTO_DOWNLOAD_ARTIFACTS", "1") == "0":
+    pytest.skip("Auto-download disabled for tests.", allow_module_level=True)
 
 
 def test_pipeline():

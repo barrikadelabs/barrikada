@@ -1,2 +1,0 @@
-[console_scripts]
-barrikade = barrikade.__main__:main

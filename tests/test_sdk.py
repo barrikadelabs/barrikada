@@ -4,7 +4,11 @@ import pytest
 
 import barrikade
 from barrikade.__main__ import main
-from core.artifacts import ArtifactDownloadError, download_runtime_artifacts, ensure_runtime_artifacts
+from core.artifacts import (
+    ArtifactDownloadError,
+    download_runtime_artifacts,
+    ensure_runtime_artifacts,
+)
 from core.orchestrator import PIPipeline as CorePIPipeline
 from core.settings import Settings
 
@@ -62,17 +66,28 @@ def test_download_runtime_artifacts_fetches_missing_layers(monkeypatch, tmp_path
 
 def test_cli_download_artifacts_invokes_downloader(monkeypatch, capsys):
     monkeypatch.setattr(
-        "barrikade.__main__.download_runtime_artifacts",
-        lambda bucket_name, force: {
+        "barrikade.__main__.download_runtime_bundle",
+        lambda bucket_name, manifest_url, force: {
             "bucket": bucket_name,
+            "manifest_url": manifest_url,
             "force": force,
             "downloaded_layers": ["layer_c"],
         },
     )
 
-    exit_code = main(["download-artifacts", "--bucket", "sdk-bucket", "--force"])
+    exit_code = main(
+        [
+            "download-artifacts",
+            "--bucket",
+            "sdk-bucket",
+            "--manifest-url",
+            "https://example.com/manifest.json",
+            "--force",
+        ]
+    )
     output = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
     assert output["bucket"] == "sdk-bucket"
+    assert output["manifest_url"] == "https://example.com/manifest.json"
     assert output["force"] is True
