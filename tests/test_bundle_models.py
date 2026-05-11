@@ -25,16 +25,19 @@ from scripts.bundle_models import LAYER_CONFIGS, get_model_files
 
 
 def test_layer_c_pattern_excludes_dead_weight(tmp_path):
-    """Layer C bundling must match only classifier.joblib files (current +
-    pinned releases), not other joblibs from earlier experimental pipelines."""
+    """Layer C bundling must match only classifier.joblib + classifier.onnx
+    (current + pinned releases), not other joblibs from earlier experimental
+    pipelines."""
     outputs = tmp_path / "outputs"
     outputs.mkdir()
 
     # Files that must be bundled
-    (outputs / "classifier.joblib").write_bytes(b"current")
+    (outputs / "classifier.joblib").write_bytes(b"current_joblib")
+    (outputs / "classifier.onnx").write_bytes(b"current_onnx")
+    (outputs / "calibrator.joblib").write_bytes(b"calibrator_only")
     release_dir = outputs / "releases" / "v0.1"
     release_dir.mkdir(parents=True)
-    (release_dir / "classifier.joblib").write_bytes(b"v0.1")
+    (release_dir / "classifier.joblib").write_bytes(b"v0.1_joblib")
 
     # Vestigial files that must NOT be bundled
     for name in (
@@ -53,6 +56,8 @@ def test_layer_c_pattern_excludes_dead_weight(tmp_path):
 
     assert matched_relative == {
         "classifier.joblib",
+        "classifier.onnx",
+        "calibrator.joblib",
         "releases/v0.1/classifier.joblib",
     }
 
