@@ -88,6 +88,18 @@ def test_layer_b_pattern_excludes_unused_artifacts(tmp_path):
     (prompt_encoder / "model.safetensors").write_bytes(b"prompt_weights")
     (prompt_encoder / "tokenizer.json").write_text("{}")
 
+    # ONNX-converted encoder bundle (produced by scripts/export_layer_b_onnx.py),
+    # also runtime-loaded — signature_engine.py auto-detects this and prefers
+    # it over the PT prompt_encoder when present.
+    prompt_encoder_onnx = embeddings / "prompt_encoder_onnx"
+    prompt_encoder_onnx.mkdir()
+    (prompt_encoder_onnx / "config.json").write_text("{}")
+    (prompt_encoder_onnx / "modules.json").write_text("[]")
+    (prompt_encoder_onnx / "tokenizer.json").write_text("{}")
+    onnx_subdir = prompt_encoder_onnx / "onnx"
+    onnx_subdir.mkdir()
+    (onnx_subdir / "model.onnx").write_bytes(b"onnx_weights")
+
     # Files that must NOT be bundled
     signature_encoder = embeddings / "signature_encoder"
     signature_encoder.mkdir()
@@ -114,4 +126,8 @@ def test_layer_b_pattern_excludes_unused_artifacts(tmp_path):
         "embeddings/prompt_encoder/config.json",
         "embeddings/prompt_encoder/model.safetensors",
         "embeddings/prompt_encoder/tokenizer.json",
+        "embeddings/prompt_encoder_onnx/config.json",
+        "embeddings/prompt_encoder_onnx/modules.json",
+        "embeddings/prompt_encoder_onnx/tokenizer.json",
+        "embeddings/prompt_encoder_onnx/onnx/model.onnx",
     }

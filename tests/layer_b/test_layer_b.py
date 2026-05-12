@@ -66,7 +66,8 @@ def test_layer_b():
     # Save results
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_path = f"core/layer_b/outputs/layer_b_results_{timestamp}.csv"
-    
+
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(results).to_csv(output_path, index=False)
     print(f"\nResults saved to: {output_path}")
     
@@ -142,8 +143,8 @@ def test_layer_b():
     print(f"Flag rate:              {flag_rate:.4f} ({flag_total}/{total})")
     print(f"Decisive rate:          {decisive_rate:.4f} ({total_decisive}/{total})")
     print(f"Decisive accuracy:      {decisive_accuracy:.4f} ({correct_decisive}/{total_decisive})")
-    print(f"  Correct:   {correct_decisive}  (mal→block: {malicious_block}, safe→allow: {safe_allow})")
-    print(f"  Incorrect: {incorrect_decisive}  (safe→block: {safe_block}, mal→allow: {malicious_allow})")
+    print(f"  Correct:   {correct_decisive}  (mal->block: {malicious_block}, safe->allow: {safe_allow})")
+    print(f"  Incorrect: {incorrect_decisive}  (safe->block: {safe_block}, mal->allow: {malicious_allow})")
 
     # Block precision = malicious_block / total_block
     block_precision = malicious_block / block_total if block_total > 0 else 0
@@ -179,7 +180,6 @@ def test_layer_b():
     print(f"Margin median:        {results_df['layer_b_margin'].median():.4f}")
     assert len(results) == len(df)
     assert total == len(df)
-    return output_path
 
 if __name__ == "__main__":
     import time

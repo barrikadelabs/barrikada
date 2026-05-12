@@ -72,6 +72,7 @@ numpy==2.3.4
 onnxmltools==1.16.0
 onnxruntime==1.26.0
 openai==2.21.0
+optimum==2.1.0
 orjson==3.11.7
 packaging==25.0
 pandas==2.3.3
