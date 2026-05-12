@@ -1,3 +1,4 @@
+import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,6 +9,8 @@ from sentence_transformers import SentenceTransformer
 import torch
 
 from models.LayerCResult import LayerCResult
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -23,9 +26,44 @@ class Thresholds:
 
 
 class Classifier:
+    @staticmethod
+    def _is_onnx_encoder_dir_ready(model_dir: Path) -> bool:
+        required_files = [
+            model_dir / "config.json",
+            model_dir / "modules.json",
+            model_dir / "tokenizer.json",
+            model_dir / "onnx" / "model.onnx",
+        ]
+        return all(path.exists() for path in required_files)
+
+    def _load_encoder(self, model_path: Path, embedding_model: str):
+        # Prefer the ONNX-converted encoder when it's available alongside the
+        # classifier artifacts. On CPU (production deployment target),
+        # SentenceTransformer with backend="onnx" runs ~2-3x faster per
+        # single-sample request than the PT path. Produced by
+        # tools/export_layer_c_encoder_onnx.py and bundled at
+        # core/models/layer_c/encoder_onnx/.
+        #
+        # onnxruntime's execution provider handles device selection
+        # internally, so we don't pass device= when using backend="onnx".
+        onnx_dir = Path(model_path).parent / "encoder_onnx"
+        if onnx_dir.exists() and self._is_onnx_encoder_dir_ready(onnx_dir):
+            log.info("Loading ONNX Layer C encoder: %s", onnx_dir)
+            # Pin the ONNX Runtime provider to CPU — mirrors the Layer B
+            # prompt_encoder load (core/layer_b/signature_engine.py) so both
+            # encoders are explicitly CPU-only in production.
+            return SentenceTransformer(
+                str(onnx_dir),
+                backend="onnx",
+                model_kwargs={"providers": ["CPUExecutionProvider"]},
+            )
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        log.info("Loading PT Layer C encoder: %s (device=%s)", embedding_model, device)
+        return SentenceTransformer(embedding_model, device=device)
+
     def __init__(self, model_path, embedding_model="all-mpnet-base-v2", low=0.35, high=0.85, ):
-        _device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.encoder = SentenceTransformer(embedding_model, device=_device)
+        self.encoder = self._load_encoder(model_path, embedding_model)
 
         # Prefer the ONNX classifier sibling if it exists; fall back to the
         # sklearn XGBoost in the joblib otherwise. The ONNX path is structured

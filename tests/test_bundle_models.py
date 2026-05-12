@@ -26,8 +26,8 @@ from scripts.bundle_models import LAYER_CONFIGS, get_model_files
 
 def test_layer_c_pattern_excludes_dead_weight(tmp_path):
     """Layer C bundling must match only classifier.joblib + classifier.onnx
-    (current + pinned releases), not other joblibs from earlier experimental
-    pipelines."""
+    + calibrator.joblib + encoder_onnx/ (current + pinned releases), not
+    other joblibs from earlier experimental pipelines."""
     outputs = tmp_path / "outputs"
     outputs.mkdir()
 
@@ -38,6 +38,18 @@ def test_layer_c_pattern_excludes_dead_weight(tmp_path):
     release_dir = outputs / "releases" / "v0.1"
     release_dir.mkdir(parents=True)
     (release_dir / "classifier.joblib").write_bytes(b"v0.1_joblib")
+
+    # ONNX-converted encoder bundle (produced by
+    # scripts/export_layer_c_encoder_onnx.py), runtime-loaded by
+    # core/layer_c/classifier.py which prefers it over the HF Hub PT model.
+    encoder_onnx = outputs / "encoder_onnx"
+    encoder_onnx.mkdir()
+    (encoder_onnx / "config.json").write_text("{}")
+    (encoder_onnx / "modules.json").write_text("[]")
+    (encoder_onnx / "tokenizer.json").write_text("{}")
+    onnx_subdir = encoder_onnx / "onnx"
+    onnx_subdir.mkdir()
+    (onnx_subdir / "model.onnx").write_bytes(b"onnx_weights")
 
     # Vestigial files that must NOT be bundled
     for name in (
@@ -59,6 +71,10 @@ def test_layer_c_pattern_excludes_dead_weight(tmp_path):
         "classifier.onnx",
         "calibrator.joblib",
         "releases/v0.1/classifier.joblib",
+        "encoder_onnx/config.json",
+        "encoder_onnx/modules.json",
+        "encoder_onnx/tokenizer.json",
+        "encoder_onnx/onnx/model.onnx",
     }
 
 
