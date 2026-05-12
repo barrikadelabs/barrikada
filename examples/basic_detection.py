@@ -1,4 +1,4 @@
-from core.orchestrator import PIPipeline
+from barrikade import PIPipeline
 
 
 SAMPLES = [

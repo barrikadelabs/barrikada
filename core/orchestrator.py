@@ -2,6 +2,7 @@ import hashlib
 import logging
 import time
 
+from core.artifacts import ensure_runtime_artifacts
 from core.settings import Settings
 from models.PipelineResult import PipelineResult
 
@@ -13,6 +14,9 @@ log = logging.getLogger(__name__)
 
 class PIPipeline:
     def __init__(self):
+        log.info("Initializing Barrikade pipeline")
+        ensure_runtime_artifacts()
+
         from core.layer_a.pipeline import analyze_text
         from core.layer_b.signature_engine import SignatureEngine
         from core.layer_c.classifier import Classifier
@@ -44,6 +48,7 @@ class PIPipeline:
             max_new_tokens=settings.layer_e_max_new_tokens,
             no_think_default=settings.layer_e_no_think_default,
         )
+        log.info("Barrikade pipeline ready")
 
     def _create_result(self, input_hash, start_time, layer_a_result, final_verdict, decision_layer, confidence_score, layer_b_result=None, layer_c_result=None, layer_d_result=None, layer_e_result_dict=None, layer_e_time_ms=None, ):
         total_time = (time.time() - start_time) * 1000

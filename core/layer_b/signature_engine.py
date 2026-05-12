@@ -88,7 +88,11 @@ class SignatureEngine:
         onnx_dir = Path(self.settings.layer_b_signatures_dir) / "prompt_encoder_onnx"
         if onnx_dir.exists() and self._is_onnx_encoder_dir_ready(onnx_dir):
             log.info("Loading ONNX prompt encoder: %s", onnx_dir)
-            self.model = SentenceTransformer(str(onnx_dir), backend="onnx")
+            self.model = SentenceTransformer(
+                str(onnx_dir),
+                backend="onnx",
+                model_kwargs={"providers": ["CPUExecutionProvider"]}, #Inference is CPU only
+            )
             return
 
         # PT backend fallback (fine-tuned local encoder or HF Hub base model)
@@ -102,9 +106,9 @@ class SignatureEngine:
         if forced in {"cpu", "cuda", "mps"}:
             return forced
 
-        # MPS can be unstable under Streamlit reruns on some macOS setups.
-        if platform.system() == "Darwin":
-            return "cpu"
+        # # MPS can be unstable under Streamlit reruns on some macOS setups.
+        # if platform.system() == "Darwin":
+        #     return "cpu"
 
         return "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -113,9 +117,9 @@ class SignatureEngine:
         if forced in {"faiss", "sklearn"}:
             return forced
 
-        # faiss + torch can segfault on some macOS runtimes.
-        if platform.system() == "Darwin":
-            return "sklearn"
+        # # faiss + torch can segfault on some macOS runtimes.
+        # if platform.system() == "Darwin":
+        #     return "sklearn"
 
         return "faiss"
 

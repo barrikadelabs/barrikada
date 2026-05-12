@@ -1,8 +1,7 @@
 import chardet
 import logging
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("safe_decoder")
+logger = logging.getLogger(__name__)
 
 def safe_decode(raw_bytes, decode_errors="replace", suspicious_threshold=0, preferred_encodings=None, confidence_threshold=0.7):
     """
