@@ -6,6 +6,8 @@ import logging
 import os
 import re
 import shutil
+import sys
+import time
 from pathlib import Path
 from typing import Iterable
 from uuid import uuid4
@@ -18,10 +20,96 @@ DEFAULT_GCS_BUCKET = "barrikade-bundles"
 GCS_MODELS_PREFIX = "models"
 DEFAULT_BUNDLE_MANIFEST_OBJECT = f"{GCS_MODELS_PREFIX}/manifest.json"
 _BUNDLE_CHECKED = False
+_DOWNLOAD_CHUNK_SIZE = 1024 * 1024
+_PROGRESS_LOG_INTERVAL_S = 5.0
+_PROGRESS_LOG_STEP_PCT = 5
 
 
 class ArtifactDownloadError(RuntimeError):
     """Raised when the runtime artifact bundle cannot be prepared."""
+
+
+def _format_bytes(value: int) -> str:
+    units = ["B", "KB", "MB", "GB", "TB"]
+    size = float(value)
+    for unit in units:
+        if size < 1024 or unit == units[-1]:
+            if unit == "B":
+                return f"{int(size)} {unit}"
+            return f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{value} B"
+
+
+def _use_tqdm() -> bool:
+    if os.getenv("TQDM_DISABLE", "0") == "1":
+        return False
+    return bool(getattr(sys.stderr, "isatty", lambda: False)())
+
+
+class _DownloadProgress:
+    def __init__(self, label: str, total_bytes: int | None, logger: logging.Logger) -> None:
+        self.label = label
+        self.total_bytes = total_bytes
+        self.logger = logger
+        self.downloaded = 0
+        self._last_log_time = time.time()
+        self._last_pct = -1
+        self._tqdm = None
+
+        if _use_tqdm():
+            try:
+                from tqdm import tqdm
+            except Exception:
+                self._tqdm = None
+            else:
+                self._tqdm = tqdm(
+                    total=total_bytes,
+                    unit="B",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                    desc=label,
+                    leave=False,
+                    file=sys.stderr,
+                )
+        if self._tqdm is None:
+            if total_bytes:
+                self.logger.info("Downloading %s (%s)", label, _format_bytes(total_bytes))
+            else:
+                self.logger.info("Downloading %s (size unknown)", label)
+
+    def update(self, byte_count: int) -> None:
+        if byte_count <= 0:
+            return
+        if self._tqdm is not None:
+            self._tqdm.update(byte_count)
+            return
+
+        self.downloaded += byte_count
+        now = time.time()
+        if self.total_bytes:
+            pct = int(self.downloaded / self.total_bytes * 100)
+            if pct >= self._last_pct + _PROGRESS_LOG_STEP_PCT or now - self._last_log_time >= _PROGRESS_LOG_INTERVAL_S:
+                self._last_pct = pct
+                self._last_log_time = now
+                self.logger.info(
+                    "Downloading %s: %s/%s (%d%%)",
+                    self.label,
+                    _format_bytes(self.downloaded),
+                    _format_bytes(self.total_bytes),
+                    pct,
+                )
+        elif now - self._last_log_time >= _PROGRESS_LOG_INTERVAL_S:
+            self._last_log_time = now
+            self.logger.info(
+                "Downloading %s: %s",
+                self.label,
+                _format_bytes(self.downloaded),
+            )
+
+    def close(self) -> None:
+        if self._tqdm is not None:
+            self._tqdm.close()
 
 
 def _artifact_bucket(bucket_name: str | None = None) -> str:
@@ -177,31 +265,47 @@ def _list_gcs_layer_files(bucket_name: str, layer_name: str) -> list[str]:
     return files
 
 
-def _download_gcs_file(bucket_name: str, blob_name: str, local_path: Path) -> None:
+def _download_gcs_file(
+    bucket_name: str,
+    blob_name: str,
+    local_path: Path,
+    *,
+    label: str | None = None,
+) -> None:
     url = f"https://storage.googleapis.com/{bucket_name}/{blob_name}"
-    response = _http_get(url)
-    if response.status_code != 200:
+    try:
+        _download_url_to_path(url, local_path, label=label or blob_name)
+    except ArtifactDownloadError as exc:
         raise ArtifactDownloadError(
-            f"Failed to download {blob_name} from bucket {bucket_name}: "
-            f"HTTP {response.status_code} {response.reason}"
-        )
-
-    local_path.parent.mkdir(parents=True, exist_ok=True)
-    local_path.write_bytes(response.content)
+            f"Failed to download {blob_name} from bucket {bucket_name}: {exc}"
+        ) from exc
 
 
-def _download_url_to_path(url: str, local_path: Path) -> None:
+def _download_url_to_path(url: str, local_path: Path, *, label: str | None = None) -> None:
     response = _http_get(url, stream=True)
     if response.status_code != 200:
         raise ArtifactDownloadError(
             f"Failed to download {url}: HTTP {response.status_code} {response.reason}"
         )
 
+    total_bytes = None
+    content_length = response.headers.get("Content-Length")
+    if content_length:
+        try:
+            total_bytes = int(content_length)
+        except ValueError:
+            total_bytes = None
+
     local_path.parent.mkdir(parents=True, exist_ok=True)
-    with local_path.open("wb") as handle:
-        for chunk in response.iter_content(chunk_size=1024 * 1024):
-            if chunk:
-                handle.write(chunk)
+    progress = _DownloadProgress(label or local_path.name, total_bytes, log)
+    try:
+        with local_path.open("wb") as handle:
+            for chunk in response.iter_content(chunk_size=_DOWNLOAD_CHUNK_SIZE):
+                if chunk:
+                    handle.write(chunk)
+                    progress.update(len(chunk))
+    finally:
+        progress.close()
 
 
 def _sha256_file(path: Path) -> str:
@@ -313,12 +417,12 @@ def _iter_download_targets(
     layer_name: str,
     files: Iterable[str],
     settings: Settings,
-) -> Iterable[tuple[str, Path]]:
+) -> Iterable[tuple[str, Path, Path]]:
     layer_root = _layer_root(layer_name, settings)
     for blob_name in files:
         parts = blob_name.split("/")
         relative_path = Path(*parts[2:])
-        yield blob_name, layer_root / relative_path
+        yield blob_name, layer_root / relative_path, relative_path
 
 
 def download_runtime_artifacts(
@@ -333,17 +437,27 @@ def download_runtime_artifacts(
     downloaded_layers: list[str] = []
 
     for layer_name in _layers_to_download(runtime_settings, force):
-        log.info("Downloading Barrikade artifacts for %s", layer_name)
         files = _list_gcs_layer_files(resolved_bucket, layer_name)
         if not files:
             raise ArtifactDownloadError(
                 f"No runtime artifacts found for {layer_name} in gs://{resolved_bucket}/{GCS_MODELS_PREFIX}/"
             )
 
-        for blob_name, local_path in _iter_download_targets(layer_name, files, runtime_settings):
-            _download_gcs_file(resolved_bucket, blob_name, local_path)
+        total_files = len(files)
+        log.info(
+            "Downloading Barrikade artifacts for %s (%d files)",
+            layer_name,
+            total_files,
+        )
+        for index, (blob_name, local_path, relative_path) in enumerate(
+            _iter_download_targets(layer_name, files, runtime_settings),
+            start=1,
+        ):
+            label = f"{layer_name}/{relative_path.as_posix()} ({index}/{total_files})"
+            _download_gcs_file(resolved_bucket, blob_name, local_path, label=label)
 
         downloaded_layers.append(layer_name)
+        log.info("Layer %s artifacts ready", layer_name)
 
     summary["downloaded_layers"] = downloaded_layers
     summary["artifacts_dir"] = runtime_settings.artifacts_root_dir
@@ -378,6 +492,7 @@ def download_runtime_bundle(
     missing_layers = _missing_layers(runtime_settings)
 
     try:
+        log.info("Fetching runtime bundle manifest from %s", resolved_manifest_url)
         remote_manifest = _fetch_manifest(resolved_manifest_url)
     except ArtifactDownloadError as exc:
         if "HTTP 404" in str(exc):
@@ -404,6 +519,10 @@ def download_runtime_bundle(
         remote_manifest=remote_manifest,
         missing_layers=missing_layers,
     ):
+        if summary.get("bundle_version"):
+            log.info("Runtime bundle up to date (version %s)", summary["bundle_version"])
+        else:
+            log.info("Runtime bundle up to date")
         return summary
 
     archive_url = remote_manifest.get("bundle_url") or remote_manifest.get("archive_url")
@@ -411,10 +530,11 @@ def download_runtime_bundle(
     target_dir = _bundle_root(runtime_settings)
 
     if archive_url:
+        log.info("Downloading runtime bundle archive")
         staging_dir = _create_staging_dir(target_dir)
         try:
             archive_path = staging_dir / "bundle-archive"
-            _download_url_to_path(str(archive_url), archive_path)
+            _download_url_to_path(str(archive_url), archive_path, label="bundle archive")
             content_root = _extract_archive(archive_path, staging_dir)
             if content_root != staging_dir:
                 _swap_bundle_dir(content_root, target_dir)
@@ -425,11 +545,12 @@ def download_runtime_bundle(
             shutil.rmtree(staging_dir, ignore_errors=True)
             raise
     elif files:
+        log.info("Downloading runtime bundle files (%d files)", len(files))
         base_url = _manifest_base_url(remote_manifest, resolved_bucket)
         prefix = _manifest_prefix(remote_manifest)
         staging_dir = _create_staging_dir(target_dir)
         try:
-            for entry in files:
+            for index, entry in enumerate(files, start=1):
                 path_value = entry.get("path") or entry.get("name")
                 if not path_value:
                     continue
@@ -440,7 +561,8 @@ def download_runtime_bundle(
                     remote_path = relative_path.as_posix()
                 url = entry.get("url") or f"{base_url}/{remote_path}"
                 destination = staging_dir / relative_path
-                _download_url_to_path(str(url), destination)
+                label = f"bundle/{relative_path.as_posix()} ({index}/{len(files)})"
+                _download_url_to_path(str(url), destination, label=label)
                 expected_sha = entry.get("sha256")
                 if expected_sha:
                     actual_sha = _sha256_file(destination)
@@ -467,6 +589,7 @@ def download_runtime_bundle(
 
     _write_manifest(local_manifest_path, remote_manifest)
     summary["updated"] = True
+    log.info("Runtime bundle ready at %s", runtime_settings.bundle_root_dir)
     return summary
 
 
@@ -499,7 +622,10 @@ def ensure_runtime_bundle(
 
     runtime_settings = settings or Settings()
     if _BUNDLE_CHECKED and not force:
+        log.debug("Runtime bundle already checked; skipping.")
         return
+
+    log.info("Checking Barrikade runtime bundle in %s", runtime_settings.bundle_root_dir)
 
     missing_layers = _missing_layers(runtime_settings)
     local_manifest_path = _bundle_manifest_path(runtime_settings)
@@ -509,6 +635,7 @@ def ensure_runtime_bundle(
         auto_download = os.getenv("BARRIKADA_AUTO_DOWNLOAD_ARTIFACTS", "1") != "0"
 
     if not auto_download:
+        log.info("Auto-download disabled; verifying local runtime artifacts")
         if missing_layers:
             missing = ", ".join(sorted(missing_layers))
             raise ArtifactDownloadError(
