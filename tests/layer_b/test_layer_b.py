@@ -180,7 +180,6 @@ def test_layer_b():
     print(f"Margin median:        {results_df['layer_b_margin'].median():.4f}")
     assert len(results) == len(df)
     assert total == len(df)
-    return output_path
 
 if __name__ == "__main__":
     import time
