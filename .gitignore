@@ -9,8 +9,10 @@
 /core/layer_b/signatures/embeddings/*.bin
 /core/layer_b/signatures/embeddings/*.npy
 /core/layer_b/signatures/embeddings/prompt_encoder/
+/core/layer_b/signatures/embeddings/prompt_encoder_onnx/
 /core/layer_b/signatures/embeddings/signature_encoder/
 /core/layer_c/outputs/*.joblib
+/core/layer_c/outputs/*.onnx
 /core/layer_c/outputs/releases/**/classifier.joblib
 /core/layer_d/outputs/model/
 /core/layer_d/outputs/releases/**/model/
@@ -34,6 +36,8 @@
 
 __pycache__
 venv
+.venv
+.python-version
 .coverage
 .vscode
 .cache
@@ -47,5 +51,13 @@ venv
 **/__pycache__/
 *.py[cod]
 
+# Packaging artifacts
+*.egg-info/
+*.whl
+*.tar.gz
+
 # Local test cache
 .pytest_cache/
+
+.venv-test
+venv-test
