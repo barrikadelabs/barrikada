@@ -106,9 +106,9 @@ class SignatureEngine:
         if forced in {"cpu", "cuda", "mps"}:
             return forced
 
-        # MPS can be unstable under Streamlit reruns on some macOS setups.
-        if platform.system() == "Darwin":
-            return "cpu"
+        # # MPS can be unstable under Streamlit reruns on some macOS setups.
+        # if platform.system() == "Darwin":
+        #     return "cpu"
 
         return "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -117,9 +117,9 @@ class SignatureEngine:
         if forced in {"faiss", "sklearn"}:
             return forced
 
-        # faiss + torch can segfault on some macOS runtimes.
-        if platform.system() == "Darwin":
-            return "sklearn"
+        # # faiss + torch can segfault on some macOS runtimes.
+        # if platform.system() == "Darwin":
+        #     return "sklearn"
 
         return "faiss"
 
