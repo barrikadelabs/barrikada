@@ -1,3 +1,4 @@
+import logging
 import time
 import json
 from dataclasses import dataclass
@@ -7,6 +8,8 @@ import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, PreTrainedTokenizerFast
 
 from models.LayerDResult import LayerDResult
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -54,13 +57,47 @@ class LayerDClassifier:
                     tokenizer.add_special_tokens({"pad_token": "[PAD]"})
             return tokenizer
 
+    @staticmethod
+    def _is_onnx_classifier_dir_ready(model_dir: Path) -> bool:
+        required_files = [
+            model_dir / "config.json",
+            model_dir / "model.onnx",
+            model_dir / "tokenizer.json",
+        ]
+        return all(path.exists() for path in required_files)
+
+    def _load_backend(self, model_dir):
+        # Prefer the ONNX-exported classifier when a complete sibling bundle
+        # is present next to the PT model directory. The ONNX path runs on
+        # CPU via onnxruntime and decouples Layer D from the torch runtime
+        # for inference. Produced by tools/export_layer_d_onnx.py and
+        # bundled at core/models/layer_d/onnx/.
+        onnx_dir = Path(model_dir).parent / "onnx"
+        if onnx_dir.exists() and self._is_onnx_classifier_dir_ready(onnx_dir):
+            log.info("Loading ONNX Layer D classifier: %s", onnx_dir)
+            from optimum.onnxruntime import ORTModelForSequenceClassification
+            tokenizer = self._load_tokenizer(str(onnx_dir))
+            # Pin the ONNX Runtime provider to CPU — mirrors the explicit
+            # CPU pinning the team added to Layer B's prompt_encoder load
+            # (core/layer_b/signature_engine.py) and Layer C's XGBoost
+            # InferenceSession (core/layer_c/classifier.py).
+            model = ORTModelForSequenceClassification.from_pretrained(
+                str(onnx_dir),
+                provider="CPUExecutionProvider",
+            )
+            return tokenizer, model, "cpu", True
+
+        log.info("Loading PT Layer D classifier: %s", model_dir)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        tokenizer = self._load_tokenizer(model_dir)
+        model = AutoModelForSequenceClassification.from_pretrained(model_dir)
+        model.to(device)
+        model.eval()
+        return tokenizer, model, device, False
+
     def __init__(self, model_dir, low=0.05, high=0.95, max_length=512, ):
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.max_length = max_length
-        self.tokenizer = self._load_tokenizer(model_dir)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_dir)
-        self.model.to(self.device)
-        self.model.eval()
+        self.tokenizer, self.model, self.device, self._is_onnx = self._load_backend(model_dir)
 
         self.thresholds = Thresholds(low=low, high=high)
         self.thresholds.validate()
