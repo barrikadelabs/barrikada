@@ -22,6 +22,7 @@ idna==3.11
 joblib==1.5.2
 numpy==2.3.4
 onnxruntime==1.26.0
+optimum==2.1.0
 packaging==25.0
 pydantic==2.12.3
 pydantic_core==2.41.4

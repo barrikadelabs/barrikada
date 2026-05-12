@@ -40,6 +40,7 @@ LAYER_CONFIGS = {
             "embeddings/faiss_index.bin",
             "embeddings/benign_faiss_index.bin",
             "embeddings/prompt_encoder/",
+            "embeddings/prompt_encoder_onnx/",
         ],
         "description": "Signature Engine (FAISS indices, embeddings)",
     },
