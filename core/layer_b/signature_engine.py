@@ -88,7 +88,11 @@ class SignatureEngine:
         onnx_dir = Path(self.settings.layer_b_signatures_dir) / "prompt_encoder_onnx"
         if onnx_dir.exists() and self._is_onnx_encoder_dir_ready(onnx_dir):
             log.info("Loading ONNX prompt encoder: %s", onnx_dir)
-            self.model = SentenceTransformer(str(onnx_dir), backend="onnx")
+            self.model = SentenceTransformer(
+                str(onnx_dir),
+                backend="onnx",
+                model_kwargs={"providers": ["CPUExecutionProvider"]}, #Inference is CPU only
+            )
             return
 
         # PT backend fallback (fine-tuned local encoder or HF Hub base model)
