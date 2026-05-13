@@ -37,21 +37,19 @@ class Classifier:
         return all(path.exists() for path in required_files)
 
     def _load_encoder(self, model_path: Path, embedding_model: str):
-        # Prefer the ONNX-converted encoder when it's available alongside the
-        # classifier artifacts. On CPU (production deployment target),
-        # SentenceTransformer with backend="onnx" runs ~2-3x faster per
-        # single-sample request than the PT path. Produced by
-        # tools/export_layer_c_encoder_onnx.py and bundled at
-        # core/models/layer_c/encoder_onnx/.
-        #
-        # onnxruntime's execution provider handles device selection
-        # internally, so we don't pass device= when using backend="onnx".
-        onnx_dir = Path(model_path).parent / "encoder_onnx"
-        if onnx_dir.exists() and self._is_onnx_encoder_dir_ready(onnx_dir):
+        # Prefer the ONNX encoder bundle when present (2-3x faster CPU inference).
+        # Walk parents in case model_path resolves under releases/<v>/ — the
+        # bundle still lives at the layer_c root, not inside the release dir.
+        model_path = Path(model_path)
+        onnx_dir = None
+        for parent_dir in (model_path.parent, *list(model_path.parent.parents)[:2]):
+            candidate = parent_dir / "encoder_onnx"
+            if candidate.exists() and self._is_onnx_encoder_dir_ready(candidate):
+                onnx_dir = candidate
+                break
+
+        if onnx_dir is not None:
             log.info("Loading ONNX Layer C encoder: %s", onnx_dir)
-            # Pin the ONNX Runtime provider to CPU — mirrors the Layer B
-            # prompt_encoder load (core/layer_b/signature_engine.py) so both
-            # encoders are explicitly CPU-only in production.
             return SentenceTransformer(
                 str(onnx_dir),
                 backend="onnx",

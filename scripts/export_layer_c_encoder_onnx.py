@@ -23,7 +23,6 @@ Usage:
     python scripts/export_layer_c_encoder_onnx.py --dst core/models/layer_c/encoder_onnx
 """
 import argparse
-import sys
 import time
 from pathlib import Path
 

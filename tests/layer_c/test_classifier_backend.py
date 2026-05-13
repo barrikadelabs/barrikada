@@ -127,6 +127,48 @@ def test_is_onnx_encoder_dir_ready_rejects_missing_weights(tmp_path):
     assert Classifier._is_onnx_encoder_dir_ready(bundle) is False
 
 
+def test_is_onnx_encoder_dir_ready_rejects_missing_config(tmp_path):
+    """Without config.json the bundle is not loadable; check must return
+    False so we fall back to PT instead of crashing at load time."""
+    bundle = tmp_path / "encoder_onnx"
+    bundle.mkdir()
+    (bundle / "modules.json").write_text("[]")
+    (bundle / "tokenizer.json").write_text("{}")
+    onnx_subdir = bundle / "onnx"
+    onnx_subdir.mkdir()
+    (onnx_subdir / "model.onnx").write_bytes(b"onnx_weights")
+    # NB: no config.json
+    assert Classifier._is_onnx_encoder_dir_ready(bundle) is False
+
+
+def test_is_onnx_encoder_dir_ready_rejects_missing_modules(tmp_path):
+    """Without modules.json the pooling/normalisation pipeline can't be
+    reconstructed; check must return False."""
+    bundle = tmp_path / "encoder_onnx"
+    bundle.mkdir()
+    (bundle / "config.json").write_text("{}")
+    (bundle / "tokenizer.json").write_text("{}")
+    onnx_subdir = bundle / "onnx"
+    onnx_subdir.mkdir()
+    (onnx_subdir / "model.onnx").write_bytes(b"onnx_weights")
+    # NB: no modules.json
+    assert Classifier._is_onnx_encoder_dir_ready(bundle) is False
+
+
+def test_is_onnx_encoder_dir_ready_rejects_missing_tokenizer(tmp_path):
+    """Without tokenizer.json the encoder can't tokenize inputs; check
+    must return False."""
+    bundle = tmp_path / "encoder_onnx"
+    bundle.mkdir()
+    (bundle / "config.json").write_text("{}")
+    (bundle / "modules.json").write_text("[]")
+    onnx_subdir = bundle / "onnx"
+    onnx_subdir.mkdir()
+    (onnx_subdir / "model.onnx").write_bytes(b"onnx_weights")
+    # NB: no tokenizer.json
+    assert Classifier._is_onnx_encoder_dir_ready(bundle) is False
+
+
 def test_layer_c_prefers_onnx_encoder_when_available():
     """When encoder_onnx/ is present alongside the classifier artifacts,
     Classifier must load the ONNX encoder backend. Skipped if the real
