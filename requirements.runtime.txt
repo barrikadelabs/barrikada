@@ -20,9 +20,12 @@ hf-xet==1.2.0
 huggingface-hub==0.36.0
 idna==3.11
 joblib==1.5.2
+ml_dtypes==0.5.4
 numpy==2.3.4
+onnx==1.21.0
 onnxruntime==1.26.0
 optimum==2.1.0
+optimum-onnx==0.1.0
 packaging==25.0
 pydantic==2.12.3
 pydantic_core==2.41.4
