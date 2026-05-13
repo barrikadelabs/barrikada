@@ -29,15 +29,29 @@ ONNX_DIR = PROJECT_ROOT / "core" / "models" / "layer_d" / "onnx"
 
 
 def test_is_onnx_classifier_dir_ready_accepts_complete_bundle(tmp_path):
-    """The ready-check should accept a directory containing the three files
-    optimum's ORTModelForSequenceClassification needs to load."""
+    """The ready-check should accept a directory containing the files
+    optimum's ORTModelForSequenceClassification + the tokenizer workaround
+    need to load."""
     bundle = tmp_path / "onnx"
     bundle.mkdir()
     (bundle / "config.json").write_text("{}")
     (bundle / "model.onnx").write_bytes(b"onnx_weights")
     (bundle / "tokenizer.json").write_text("{}")
+    (bundle / "tokenizer_config.json").write_text("{}")
 
     assert LayerDClassifier._is_onnx_classifier_dir_ready(bundle) is True
+
+
+def test_is_onnx_classifier_dir_ready_rejects_missing_config(tmp_path):
+    """Without config.json the bundle is not loadable -- check must return
+    False so we fall back to the PT path instead of crashing at load time."""
+    bundle = tmp_path / "onnx"
+    bundle.mkdir()
+    (bundle / "model.onnx").write_bytes(b"onnx_weights")
+    (bundle / "tokenizer.json").write_text("{}")
+    (bundle / "tokenizer_config.json").write_text("{}")
+    # NB: no config.json
+    assert LayerDClassifier._is_onnx_classifier_dir_ready(bundle) is False
 
 
 def test_is_onnx_classifier_dir_ready_rejects_missing_weights(tmp_path):
@@ -47,6 +61,7 @@ def test_is_onnx_classifier_dir_ready_rejects_missing_weights(tmp_path):
     bundle.mkdir()
     (bundle / "config.json").write_text("{}")
     (bundle / "tokenizer.json").write_text("{}")
+    (bundle / "tokenizer_config.json").write_text("{}")
     # NB: no model.onnx
     assert LayerDClassifier._is_onnx_classifier_dir_ready(bundle) is False
 
@@ -59,7 +74,22 @@ def test_is_onnx_classifier_dir_ready_rejects_missing_tokenizer(tmp_path):
     bundle.mkdir()
     (bundle / "config.json").write_text("{}")
     (bundle / "model.onnx").write_bytes(b"onnx_weights")
+    (bundle / "tokenizer_config.json").write_text("{}")
     # NB: no tokenizer.json
+    assert LayerDClassifier._is_onnx_classifier_dir_ready(bundle) is False
+
+
+def test_is_onnx_classifier_dir_ready_rejects_missing_tokenizer_config(tmp_path):
+    """Without tokenizer_config.json the TokenizersBackend ValueError doesn't
+    fire, so _load_tokenizer's PreTrainedTokenizerFast fallback never engages
+    -- the runtime would silently load with degraded tokenization. Reject the
+    bundle so we fall back to PT instead."""
+    bundle = tmp_path / "onnx"
+    bundle.mkdir()
+    (bundle / "config.json").write_text("{}")
+    (bundle / "model.onnx").write_bytes(b"onnx_weights")
+    (bundle / "tokenizer.json").write_text("{}")
+    # NB: no tokenizer_config.json
     assert LayerDClassifier._is_onnx_classifier_dir_ready(bundle) is False
 
 

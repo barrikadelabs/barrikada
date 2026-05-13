@@ -59,28 +59,24 @@ class LayerDClassifier:
 
     @staticmethod
     def _is_onnx_classifier_dir_ready(model_dir: Path) -> bool:
+        # tokenizer_config.json is required: it triggers _load_tokenizer's
+        # PreTrainedTokenizerFast fallback (the TokenizersBackend workaround).
         required_files = [
             model_dir / "config.json",
             model_dir / "model.onnx",
             model_dir / "tokenizer.json",
+            model_dir / "tokenizer_config.json",
         ]
         return all(path.exists() for path in required_files)
 
     def _load_backend(self, model_dir):
-        # Prefer the ONNX-exported classifier when a complete sibling bundle
-        # is present next to the PT model directory. The ONNX path runs on
-        # CPU via onnxruntime and decouples Layer D from the torch runtime
-        # for inference. Produced by tools/export_layer_d_onnx.py and
-        # bundled at core/models/layer_d/onnx/.
+        # Prefer ONNX when a complete sibling bundle is next to the PT model dir.
+        # Decouples Layer D inference from torch (CPU via onnxruntime).
         onnx_dir = Path(model_dir).parent / "onnx"
         if onnx_dir.exists() and self._is_onnx_classifier_dir_ready(onnx_dir):
             log.info("Loading ONNX Layer D classifier: %s", onnx_dir)
             from optimum.onnxruntime import ORTModelForSequenceClassification
             tokenizer = self._load_tokenizer(str(onnx_dir))
-            # Pin the ONNX Runtime provider to CPU — mirrors the explicit
-            # CPU pinning the team added to Layer B's prompt_encoder load
-            # (core/layer_b/signature_engine.py) and Layer C's XGBoost
-            # InferenceSession (core/layer_c/classifier.py).
             model = ORTModelForSequenceClassification.from_pretrained(
                 str(onnx_dir),
                 provider="CPUExecutionProvider",

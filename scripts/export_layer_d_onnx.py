@@ -77,10 +77,25 @@ def main():
     model.save_pretrained(str(dst))
 
     print("Copying tokenizer files verbatim (works around TokenizersBackend incompatibility)...")
-    for name in ("tokenizer.json", "tokenizer_config.json", "special_tokens_map.json"):
+    # Hard-fail on missing tokenizer.json / tokenizer_config.json: a silent
+    # skip would ship an incomplete bundle that still passes the loader sentinel
+    # but degrades tokenization. special_tokens_map.json is optional in HF format.
+    required_tokenizer_files = ("tokenizer.json", "tokenizer_config.json")
+    optional_tokenizer_files = ("special_tokens_map.json",)
+    for name in required_tokenizer_files:
+        src_file = src / name
+        if not src_file.exists():
+            sys.exit(
+                f"required tokenizer file missing from source: {src_file}. "
+                f"Re-run training or pull the full Layer D model bundle."
+            )
+        shutil.copy2(src_file, dst / name)
+    for name in optional_tokenizer_files:
         src_file = src / name
         if src_file.exists():
             shutil.copy2(src_file, dst / name)
+        else:
+            print(f"  warning: optional tokenizer file missing: {src_file}")
 
     print()
     print("--- Output ---")
