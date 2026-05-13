@@ -50,7 +50,7 @@ def test_layer_c_pattern_excludes_dead_weight(tmp_path):
     ):
         (outputs / name).write_bytes(b"dead")
 
-    patterns = LAYER_CONFIGS["layer_c"]["required_patterns"]
+    patterns = LAYER_CONFIGS["layer_c"].required_patterns
     matched = get_model_files(outputs, patterns)
     matched_relative = {p.relative_to(outputs).as_posix() for p in matched if p.is_file()}
 
@@ -112,7 +112,7 @@ def test_layer_b_pattern_excludes_unused_artifacts(tmp_path):
     (extracted / "malicious_block_high_signatures.yar").write_text("rule x {}")
     (extracted / "safe_allow_signatures.yar").write_text("rule y {}")
 
-    patterns = LAYER_CONFIGS["layer_b"]["required_patterns"]
+    patterns = LAYER_CONFIGS["layer_b"].required_patterns
     matched = get_model_files(signatures, patterns)
     matched_relative = {p.relative_to(signatures).as_posix() for p in matched if p.is_file()}
 
