@@ -40,7 +40,6 @@ COPY --from=builder /install /usr/local
 COPY api /app/api
 COPY core /app/core
 COPY models /app/models
-COPY config /app/config
 COPY scripts /app/scripts
 COPY docker_entrypoint.sh /app/docker_entrypoint.sh
 
