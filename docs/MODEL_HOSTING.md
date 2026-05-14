@@ -44,7 +44,7 @@ export BUCKET_NAME=barrikade-models
 gsutil mb gs://$BUCKET_NAME
 gsutil versioning set on gs://$BUCKET_NAME  # optional: enable versioning
 gsutil logging set on -b gs://barrikade-logs -o model-uploads gs://$BUCKET_NAME  # optional: logs
-``'
+```
 
 ### 2. Local Development Setup
 
