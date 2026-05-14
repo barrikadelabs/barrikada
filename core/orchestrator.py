@@ -6,7 +6,7 @@ from core.artifacts import ensure_runtime_artifacts
 from core.settings import Settings
 from models.PipelineResult import PipelineResult
 
-from models.Verdicts import DecisionLayer, FinalVerdict
+from models.verdicts import DecisionLayer, FinalVerdict
 
 
 log = logging.getLogger(__name__)

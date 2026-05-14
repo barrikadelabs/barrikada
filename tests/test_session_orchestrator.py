@@ -18,7 +18,7 @@ from core.risk_budget import RiskBudgetEngine
 from core.session import InMemorySessionStore
 from core.session_orchestrator import SessionDetectResult, SessionOrchestrator
 from core.session_settings import SessionSettings
-from models.Verdicts import FinalVerdict, InputProvenance, Intervention
+from models.verdicts import FinalVerdict, InputProvenance, Intervention
 
 # Skip if runtime artifacts aren't available (avoids downloading in CI)
 if os.getenv("BARRIKADA_AUTO_DOWNLOAD_ARTIFACTS", "1") == "0":
