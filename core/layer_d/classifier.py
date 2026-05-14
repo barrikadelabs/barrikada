@@ -1,3 +1,4 @@
+import logging
 import time
 import json
 from dataclasses import dataclass
@@ -7,6 +8,8 @@ import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, PreTrainedTokenizerFast
 
 from models.LayerDResult import LayerDResult
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -54,13 +57,43 @@ class LayerDClassifier:
                     tokenizer.add_special_tokens({"pad_token": "[PAD]"})
             return tokenizer
 
+    @staticmethod
+    def _is_onnx_classifier_dir_ready(model_dir: Path) -> bool:
+        # tokenizer_config.json is required: it triggers _load_tokenizer's
+        # PreTrainedTokenizerFast fallback (the TokenizersBackend workaround).
+        required_files = [
+            model_dir / "config.json",
+            model_dir / "model.onnx",
+            model_dir / "tokenizer.json",
+            model_dir / "tokenizer_config.json",
+        ]
+        return all(path.exists() for path in required_files)
+
+    def _load_backend(self, model_dir):
+        # Prefer ONNX when a complete sibling bundle is next to the PT model dir.
+        # Decouples Layer D inference from torch (CPU via onnxruntime).
+        onnx_dir = Path(model_dir).parent / "onnx"
+        if onnx_dir.exists() and self._is_onnx_classifier_dir_ready(onnx_dir):
+            log.info("Loading ONNX Layer D classifier: %s", onnx_dir)
+            from optimum.onnxruntime import ORTModelForSequenceClassification
+            tokenizer = self._load_tokenizer(str(onnx_dir))
+            model = ORTModelForSequenceClassification.from_pretrained(
+                str(onnx_dir),
+                provider="CPUExecutionProvider",
+            )
+            return tokenizer, model, "cpu", True
+
+        log.info("Loading PT Layer D classifier: %s", model_dir)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        tokenizer = self._load_tokenizer(model_dir)
+        model = AutoModelForSequenceClassification.from_pretrained(model_dir)
+        model.to(device)
+        model.eval()
+        return tokenizer, model, device, False
+
     def __init__(self, model_dir, low=0.05, high=0.95, max_length=512, ):
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.max_length = max_length
-        self.tokenizer = self._load_tokenizer(model_dir)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_dir)
-        self.model.to(self.device)
-        self.model.eval()
+        self.tokenizer, self.model, self.device, self._is_onnx = self._load_backend(model_dir)
 
         self.thresholds = Thresholds(low=low, high=high)
         self.thresholds.validate()

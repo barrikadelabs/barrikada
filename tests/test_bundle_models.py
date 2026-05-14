@@ -78,6 +78,42 @@ def test_layer_c_pattern_excludes_dead_weight(tmp_path):
     }
 
 
+def test_layer_d_pattern_includes_onnx_bundle(tmp_path):
+    """Layer D bundling must ship both the PT model/ directory and the
+    onnx/ sibling produced by scripts/export_layer_d_onnx.py. The runtime
+    classifier auto-detects onnx/ and prefers it over PT."""
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+
+    # PT model dir
+    model_dir = outputs / "model"
+    model_dir.mkdir()
+    (model_dir / "config.json").write_text("{}")
+    (model_dir / "model.safetensors").write_bytes(b"pt_weights")
+    (model_dir / "tokenizer.json").write_text("{}")
+    (model_dir / "tokenizer_config.json").write_text("{}")
+
+    # ONNX sibling bundle
+    onnx_dir = outputs / "onnx"
+    onnx_dir.mkdir()
+    (onnx_dir / "config.json").write_text("{}")
+    (onnx_dir / "model.onnx").write_bytes(b"onnx_weights")
+    (onnx_dir / "tokenizer.json").write_text("{}")
+    (onnx_dir / "tokenizer_config.json").write_text("{}")
+
+    patterns = LAYER_CONFIGS["layer_d"].required_patterns
+    matched = get_model_files(outputs, patterns)
+    matched_relative = {p.relative_to(outputs).as_posix() for p in matched if p.is_file()}
+
+    # Both PT and ONNX bundles must be included
+    assert "model/config.json" in matched_relative
+    assert "model/model.safetensors" in matched_relative
+    assert "model/tokenizer.json" in matched_relative
+    assert "onnx/config.json" in matched_relative
+    assert "onnx/model.onnx" in matched_relative
+    assert "onnx/tokenizer.json" in matched_relative
+
+
 def test_layer_b_pattern_excludes_unused_artifacts(tmp_path):
     """Layer B bundling must ship only files the runtime loads:
     centroids/FAISS indices, the small JSON metadata, and prompt_encoder/.

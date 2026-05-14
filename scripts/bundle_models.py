@@ -67,7 +67,7 @@ LAYER_CONFIGS: Dict[str, LayerConfig] = {
     "layer_d": LayerConfig(
         outputs_dir=CORE_DIR / "layer_d" / "outputs",
         target_dir=MODELS_DIR / "layer_d",
-        required_patterns=("model/", "tokenizer.json", "*.safetensors"),
+        required_patterns=("model/", "onnx/", "tokenizer.json", "*.safetensors"),
         description="ModernBERT (Hugging Face model)",
     ),
     "layer_e": LayerConfig(
