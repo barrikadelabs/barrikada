@@ -1,3 +1,4 @@
+import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,6 +9,8 @@ from sentence_transformers import SentenceTransformer
 import torch
 
 from models.LayerCResult import LayerCResult
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -23,9 +26,42 @@ class Thresholds:
 
 
 class Classifier:
+    @staticmethod
+    def _is_onnx_encoder_dir_ready(model_dir: Path) -> bool:
+        required_files = [
+            model_dir / "config.json",
+            model_dir / "modules.json",
+            model_dir / "tokenizer.json",
+            model_dir / "onnx" / "model.onnx",
+        ]
+        return all(path.exists() for path in required_files)
+
+    def _load_encoder(self, model_path: Path, embedding_model: str):
+        # Prefer the ONNX encoder bundle when present (2-3x faster CPU inference).
+        # Walk parents in case model_path resolves under releases/<v>/ — the
+        # bundle still lives at the layer_c root, not inside the release dir.
+        model_path = Path(model_path)
+        onnx_dir = None
+        for parent_dir in (model_path.parent, *list(model_path.parent.parents)[:2]):
+            candidate = parent_dir / "encoder_onnx"
+            if candidate.exists() and self._is_onnx_encoder_dir_ready(candidate):
+                onnx_dir = candidate
+                break
+
+        if onnx_dir is not None:
+            log.info("Loading ONNX Layer C encoder: %s", onnx_dir)
+            return SentenceTransformer(
+                str(onnx_dir),
+                backend="onnx",
+                model_kwargs={"providers": ["CPUExecutionProvider"]},
+            )
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        log.info("Loading PT Layer C encoder: %s (device=%s)", embedding_model, device)
+        return SentenceTransformer(embedding_model, device=device)
+
     def __init__(self, model_path, embedding_model="all-mpnet-base-v2", low=0.35, high=0.85, ):
-        _device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.encoder = SentenceTransformer(embedding_model, device=_device)
+        self.encoder = self._load_encoder(model_path, embedding_model)
 
         # Prefer the ONNX classifier sibling if it exists; fall back to the
         # sklearn XGBoost in the joblib otherwise. The ONNX path is structured
