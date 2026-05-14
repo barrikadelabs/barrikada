@@ -325,7 +325,7 @@ class SessionOrchestrator:
         return session.to_summary_dict()
 
 
-# ── Factory ─────────────────────────────────────────────────────────────
+# Factory
 
 
 def create_session_orchestrator(
