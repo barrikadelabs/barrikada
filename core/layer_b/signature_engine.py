@@ -191,6 +191,11 @@ class SignatureEngine:
         scores = 1.0 - distances
         return scores.astype(np.float32), ids.astype(np.int64)
 
+    @property
+    def embedding_model(self) -> SentenceTransformer:
+        """Expose the loaded encoder for reuse by other components."""
+        return self.model
+
     # embedding helper
     def _embed(self, text):
         vec = self.model.encode(

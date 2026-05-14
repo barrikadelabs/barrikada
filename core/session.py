@@ -9,11 +9,8 @@ that the in-memory implementation can be swapped for Redis/Postgres later
 with zero changes to consuming code.
 """
 
-from __future__ import annotations
-
 import logging
 import threading
-import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -24,13 +21,12 @@ from uuid import uuid4
 import numpy as np
 
 from core.session_settings import SessionSettings
-from models.verdicts import InputProvenance, Intervention
+from models.verdicts import InputProvenance
 
 log = logging.getLogger(__name__)
 
 
-# ── Event Types ─────────────────────────────────────────────────────────
-
+#Event Types
 
 class SessionEventType(str, Enum):
     """Types of events recorded in a workload session."""
@@ -56,7 +52,7 @@ class SessionStatus(str, Enum):
     HALTED = "halted"          # Stopped by an intervention
 
 
-# ── Data Classes ────────────────────────────────────────────────────────
+#Data Classes
 
 
 @dataclass
@@ -140,13 +136,13 @@ class WorkloadSession:
         }
 
 
-# ── Abstract Backend ────────────────────────────────────────────────────
+#Abstract Backend 
 
 
 class SessionStoreBackend(ABC):
     """Abstract interface for session storage.
 
-    Implement this to swap the in-memory store for Redis, Postgres, etc.
+    TODO: Implement this to swap the in-memory store for Redis, Postgres, etc.
     All consuming code depends on this interface — not a concrete store.
     """
 
@@ -190,7 +186,7 @@ class SessionStoreBackend(ABC):
         ...
 
 
-# ── In-Memory Implementation ───────────────────────────────────────────
+#In-Memory Implementation ───────────────────────────────────────────
 
 
 class InMemorySessionStore(SessionStoreBackend):
@@ -215,7 +211,7 @@ class InMemorySessionStore(SessionStoreBackend):
         self._sessions: dict[str, WorkloadSession] = {}
         self._lock = threading.Lock()
 
-    # ── helpers ──────────────────────────────────────────────────────
+    #helpers ──
 
     def _is_expired(self, session: WorkloadSession) -> bool:
         age = (datetime.now(timezone.utc) - session.created_at).total_seconds()
@@ -232,7 +228,7 @@ class InMemorySessionStore(SessionStoreBackend):
             log.info("Evicting expired session %s", sid)
             del self._sessions[sid]
 
-    # ── public API ───────────────────────────────────────────────────
+    #public API
 
     def create_session(
         self,
