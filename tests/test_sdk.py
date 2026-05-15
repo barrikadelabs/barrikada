@@ -10,11 +10,29 @@ from core.artifacts import (
     ensure_runtime_artifacts,
 )
 from core.orchestrator import PIPipeline as CorePIPipeline
+from core.session_orchestrator import (
+    SessionOrchestrator as CoreSessionOrchestrator,
+    create_session_orchestrator as core_create_session_orchestrator,
+)
+from core.session_settings import SessionSettings as CoreSessionSettings
 from core.settings import Settings
+from models.verdicts import (
+    InputProvenance as CoreInputProvenance,
+    Intervention as CoreIntervention,
+)
 
 
 def test_public_sdk_exports_pipeline():
     assert barrikade.PIPipeline is CorePIPipeline
+
+
+def test_public_sdk_exports_session_surface():
+    """Session-aware integration types are part of the stable SDK surface."""
+    assert barrikade.SessionOrchestrator is CoreSessionOrchestrator
+    assert barrikade.create_session_orchestrator is core_create_session_orchestrator
+    assert barrikade.SessionSettings is CoreSessionSettings
+    assert barrikade.Intervention is CoreIntervention
+    assert barrikade.InputProvenance is CoreInputProvenance
 
 
 def test_ensure_runtime_artifacts_errors_when_auto_download_disabled(monkeypatch, tmp_path):
