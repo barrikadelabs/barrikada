@@ -3,7 +3,14 @@
 import logging
 import os
 
-from barrikade.sdk import PIPipeline
+from barrikade.sdk import (
+    InputProvenance,
+    Intervention,
+    PIPipeline,
+    SessionOrchestrator,
+    SessionSettings,
+    create_session_orchestrator,
+)
 from core.artifacts import (
     ArtifactDownloadError,
     download_runtime_bundle,
@@ -46,7 +53,12 @@ if os.getenv("BARRIKADA_SKIP_IMPORT_BUNDLE_CHECK", "0") == "0":
 
 __all__ = [
     "ArtifactDownloadError",
+    "InputProvenance",
+    "Intervention",
     "PIPipeline",
+    "SessionOrchestrator",
+    "SessionSettings",
+    "create_session_orchestrator",
     "download_runtime_bundle",
     "download_runtime_artifacts",
     "ensure_runtime_bundle",
